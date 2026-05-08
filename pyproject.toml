@@ -8,6 +8,7 @@ dependencies = [
     "matplotlib>=3.10.9",
     "numpy>=2.4.4",
     "pillow>=12.2.0",
+    "pyqt6>=6.11.0",
 ]
 
 [dependency-groups]
