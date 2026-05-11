@@ -1,13 +1,37 @@
-import numpy as np
 from typing import Self
+from dataclasses import dataclass
+import numpy as np
 
 
+@dataclass
+class Component:
+    component_id: int
+    sampling_width: int
+    sampling_height: int
+    quantization_table_id: int
+
+    def to_bytes(self) -> bytes:
+        return (
+            self.component_id.to_bytes()
+            + ((self.sampling_width << 4) | self.sampling_height).to_bytes()
+            + self.quantization_table_id.to_bytes()
+        )
+
+    @classmethod
+    def from_bytes(cls, data: bytes) -> Self:
+        if len(data) != 3:
+            raise ValueError("data must be 3 bytes long")
+
+        component_id = data[0]
+        sampling_width = (data[1] >> 4) & 0x0F
+        sampling_height = data[1] & 0x0F
+        quantization_table_id = data[2]
+
+        return cls(component_id, sampling_width, sampling_height, quantization_table_id)
+
+
+@dataclass
 class FrameInformation:
-    class Component:
-        component_id: int
-        sampling_factor: tuple[int, int]
-        quantization_table_id: int
-
     sample_precision: int
     image_height: int
     image_width: int
@@ -15,21 +39,88 @@ class FrameInformation:
     components: list[Component]
 
     @classmethod
-    def create(cls, image: np.ndarray, sample_precision: int = 8) -> Self:
+    def create(cls, image_shape: tuple[int, ...], sample_precision: int = 8) -> Self:
         sample_precision = 8
-        image_height, image_width, num_components = image.shape
 
-        if num_components not in (1, 3):
-            msg = f"Number of components must be 1 or 3, but got {num_components}"
+        if len(image_shape) == 3:
+            image_height, image_width, num_components = image_shape
+        elif len(image_shape) == 2:
+            image_height, image_width = image_shape
+            num_components = 1
+        else:
+            msg = f"Invalid image shape: {image_shape}. Expected GrayScale or RGB image."
             raise ValueError(msg)
 
-        components = [
-            cls.Component(i, (2, 2) if i != 0 else (1, 1), 1 if i == 0 else 2)
-            for i in range(num_components)
-        ]
-        return cls(
-            sample_precision, image_height, image_width, num_components, components
-        )
+        components = []
+        for i in range(num_components):
+            if i == 0:
+                sampling_width = 2
+                sampling_height = 2
+                quantization_table_id = 0
+            else:
+                sampling_width = 1
+                sampling_height = 1
+                quantization_table_id = 1
+
+            components.append(
+                Component(i + 1, sampling_width, sampling_height, quantization_table_id)
+            )
+
+        return cls(sample_precision, image_height, image_width, num_components, components)
 
     def to_bytes(self) -> bytes:
-        pass
+        marker = 0xFFC0.to_bytes(2, "big")
+        segment_length = (8 + self.num_components * 3).to_bytes(2, "big")
+
+        info = (
+            self.sample_precision.to_bytes()
+            + self.image_height.to_bytes(2, "big")
+            + self.image_width.to_bytes(2, "big")
+            + self.num_components.to_bytes()
+        )
+
+        component_bytes = b"".join(component.to_bytes() for component in self.components)
+
+        return marker + segment_length + info + component_bytes
+
+    @classmethod
+    def from_bytes(cls, data: bytes) -> Self:
+        if len(data) < 8:
+            raise ValueError("data is too short")
+
+        marker = int.from_bytes(data[0:2], "big")
+        if marker != 0xFFC0:
+            raise ValueError("invalid marker")
+
+        segment_length = int.from_bytes(data[2:4], "big")
+        if len(data) != segment_length + 2:
+            raise ValueError("invalid segment length")
+
+        sample_precision = data[4]
+        image_height = int.from_bytes(data[5:7], "big")
+        image_width = int.from_bytes(data[7:9], "big")
+        num_components = data[9]
+
+        components = []
+        for i in range(num_components):
+            start_idx = 10 + i * 3
+            end_idx = start_idx + 3
+            component_data = data[start_idx:end_idx]
+            component = Component.from_bytes(component_data)
+            components.append(component)
+
+        return cls(sample_precision, image_height, image_width, num_components, components)
+
+
+if __name__ == "__main__":
+    img_shape = (256, 512, 3)
+    frame_info = FrameInformation.create(img_shape)
+    print(frame_info)
+
+    frame_info_bytes = frame_info.to_bytes()
+    print(frame_info_bytes.hex(" "))
+
+    parsed_frame_info = FrameInformation.from_bytes(frame_info_bytes)
+    print(parsed_frame_info)
+
+    assert frame_info == parsed_frame_info
