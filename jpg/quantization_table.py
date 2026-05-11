@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import numpy as np
 from typing import Self
-from helper import flat_zigzag
+from jpg.helper import flat_zigzag
 
 
 def _quantization_table(quality: int = 50) -> np.ndarray:

@@ -1,10 +1,9 @@
 from typing import Self
 from dataclasses import dataclass
-import numpy as np
 
 
 @dataclass
-class Component:
+class SamplingInfo:
     component_id: int
     sampling_width: int
     sampling_height: int
@@ -36,7 +35,7 @@ class FrameInformation:
     image_height: int
     image_width: int
     num_components: int
-    components: list[Component]
+    sampling_info_list: list[SamplingInfo]
 
     @classmethod
     def create(cls, image_shape: tuple[int, ...], sample_precision: int = 8) -> Self:
@@ -51,7 +50,7 @@ class FrameInformation:
             msg = f"Invalid image shape: {image_shape}. Expected GrayScale or RGB image."
             raise ValueError(msg)
 
-        components = []
+        sampling_info_list = []
         for i in range(num_components):
             if i == 0:
                 sampling_width = 2
@@ -62,11 +61,11 @@ class FrameInformation:
                 sampling_height = 1
                 quantization_table_id = 1
 
-            components.append(
-                Component(i + 1, sampling_width, sampling_height, quantization_table_id)
+            sampling_info_list.append(
+                SamplingInfo(i + 1, sampling_width, sampling_height, quantization_table_id)
             )
 
-        return cls(sample_precision, image_height, image_width, num_components, components)
+        return cls(sample_precision, image_height, image_width, num_components, sampling_info_list)
 
     def to_bytes(self) -> bytes:
         marker = 0xFFC0.to_bytes(2, "big")
@@ -79,7 +78,7 @@ class FrameInformation:
             + self.num_components.to_bytes()
         )
 
-        component_bytes = b"".join(component.to_bytes() for component in self.components)
+        component_bytes = b"".join(component.to_bytes() for component in self.sampling_info_list)
 
         return marker + segment_length + info + component_bytes
 
@@ -101,15 +100,15 @@ class FrameInformation:
         image_width = int.from_bytes(data[7:9], "big")
         num_components = data[9]
 
-        components = []
+        sampling_info_list = []
         for i in range(num_components):
             start_idx = 10 + i * 3
             end_idx = start_idx + 3
-            component_data = data[start_idx:end_idx]
-            component = Component.from_bytes(component_data)
-            components.append(component)
+            sampling_info_bytes = data[start_idx:end_idx]
+            sampling_info = SamplingInfo.from_bytes(sampling_info_bytes)
+            sampling_info_list.append(sampling_info)
 
-        return cls(sample_precision, image_height, image_width, num_components, components)
+        return cls(sample_precision, image_height, image_width, num_components, sampling_info_list)
 
 
 if __name__ == "__main__":
