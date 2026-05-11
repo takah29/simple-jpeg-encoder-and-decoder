@@ -6,7 +6,11 @@ import numpy as np
 from jpg.helper import zigzag_scan, zigzag_scan_inv
 
 
-def _quantization_table(quality: int = 50) -> np.ndarray:
+def _quantization_table(quality: int) -> np.ndarray:
+    if not (0 < quality <= 100):
+        msg = f"Invalid quality: {quality}. Expected 0 < quality < 50."
+        raise ValueError(msg)
+
     q_base = np.array(
         [
             [16, 11, 10, 16, 24, 40, 51, 61],
@@ -19,8 +23,9 @@ def _quantization_table(quality: int = 50) -> np.ndarray:
             [72, 92, 95, 98, 112, 100, 103, 99],
         ]
     )
-    f = 5000 / quality if quality < 50 else 200 - 2 * quality
-    q = np.clip(np.floor((q_base * f + 50) / 100), 1.0, 255.0)
+    scale = 50 / quality if quality <= 50 else (100 - quality) / 50
+    q_scaled = scale * q_base
+    q = np.clip(np.floor(q_scaled + 0.5), 1.0, 255.0).astype(np.int32)
 
     return q
 
