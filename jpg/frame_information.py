@@ -31,6 +31,8 @@ class SamplingInfo:
 
 @dataclass
 class FrameInformation:
+    MARKER = 0xFFC0
+
     sample_precision: int
     image_height: int
     image_width: int
@@ -68,7 +70,7 @@ class FrameInformation:
         return cls(sample_precision, image_height, image_width, num_components, sampling_info_list)
 
     def to_bytes(self) -> bytes:
-        marker = 0xFFC0.to_bytes(2, "big")
+        marker_bytes = FrameInformation.MARKER.to_bytes(2, "big")
         segment_length = (8 + self.num_components * 3).to_bytes(2, "big")
 
         info = (
@@ -80,7 +82,7 @@ class FrameInformation:
 
         component_bytes = b"".join(component.to_bytes() for component in self.sampling_info_list)
 
-        return marker + segment_length + info + component_bytes
+        return marker_bytes + segment_length + info + component_bytes
 
     @classmethod
     def from_bytes(cls, data: bytes) -> Self:
@@ -88,7 +90,7 @@ class FrameInformation:
             raise ValueError("data is too short")
 
         marker = int.from_bytes(data[0:2], "big")
-        if marker != 0xFFC0:
+        if marker != cls.MARKER:
             raise ValueError("invalid marker")
 
         segment_length = int.from_bytes(data[2:4], "big")

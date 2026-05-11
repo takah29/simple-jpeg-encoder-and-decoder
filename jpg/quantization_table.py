@@ -25,9 +25,11 @@ def _quantization_table(quality: int = 50) -> np.ndarray:
 
 @dataclass
 class QuantizationTable:
+    MARKER = 0xFFDB
+
     precision: int
     table_id: int
-    values: np.ndarray
+    values: np.ndarray  # shape = (8, 8)
 
     @classmethod
     def create(cls, precision: int, table_id: int) -> Self:
@@ -39,7 +41,7 @@ class QuantizationTable:
         return cls(precision, table_id, _quantization_table())
 
     def to_bytes(self) -> bytes:
-        marker = 0xFFDB.to_bytes(2, "big")
+        marker_bytes = QuantizationTable.MARKER.to_bytes(2, "big")
         segment_length = (3 + self.values.size * (2 if self.precision == 1 else 1)).to_bytes(
             2, "big"
         )
@@ -50,7 +52,7 @@ class QuantizationTable:
         else:
             table_bytes = flat_zigzag(self.values.flatten()).astype(">u2").tobytes()
 
-        return marker + segment_length + info + table_bytes
+        return marker_bytes + segment_length + info + table_bytes
 
     @classmethod
     def from_bytes(cls, data: bytes) -> Self:
@@ -58,7 +60,7 @@ class QuantizationTable:
             raise ValueError("data is too short")
 
         marker = int.from_bytes(data[0:2], "big")
-        if marker != 0xFFDB:
+        if marker != cls.MARKER:
             raise ValueError("invalid marker")
 
         segment_length = int.from_bytes(data[2:4], "big")

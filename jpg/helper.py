@@ -1,5 +1,8 @@
 import numpy as np
 
+START_OF_IMAGE = 0xFFDA
+END_OF_IMAGE = 0xFFD9
+
 ZIGZAG_ORDER = [
     0,  1,  5,  6, 14, 15, 27, 28,
     2,  4,  7, 13, 16, 26, 29, 42,
@@ -142,3 +145,5 @@ def to_ycbcr(img: np.ndarray) -> np.ndarray:
         ]
     )
     return (to_ycbcr @ img[..., None]).squeeze()
+
+def encode()

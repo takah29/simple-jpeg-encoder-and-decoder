@@ -28,6 +28,8 @@ class HuffmanTableId:
 
 @dataclass
 class StartOfScan:
+    MARKER = 0xFFDA
+
     num_components: int
     huffman_table_ids: list[HuffmanTableId]
 
@@ -64,7 +66,7 @@ class StartOfScan:
         )
 
     def to_bytes(self) -> bytes:
-        marker = 0xFFDA.to_bytes(2, "big")
+        marker_bytes = StartOfScan.MARKER.to_bytes(2, "big")
         segment_length = (3 + self.num_components * 2 + 3).to_bytes(2, "big")
 
         huffman_table_id_bytes = b"".join(
@@ -82,7 +84,7 @@ class StartOfScan:
         )
 
         return (
-            marker
+            marker_bytes
             + segment_length
             + num_components_byte
             + huffman_table_id_bytes
@@ -95,7 +97,7 @@ class StartOfScan:
             raise ValueError("data is too short")
 
         marker = int.from_bytes(data[0:2], "big")
-        if marker != 0xFFDA:
+        if marker != cls.MARKER:
             raise ValueError("invalid marker")
 
         segment_length = int.from_bytes(data[2:4], "big")

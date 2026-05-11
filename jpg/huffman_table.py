@@ -6,9 +6,11 @@ from typing import Self
 
 @dataclass
 class HuffmanTable:
+    MARKER = 0xFFC4
+
     table_class: int
     table_id: int
-    huffman_table: dict[int, tuple[int, int]]
+    huffman_table: dict[int, tuple[int, int]]  # symbol -> (code_word, code_len)
 
     @classmethod
     def from_file(cls, filepath: Path, table_class: int, table_id: int) -> Self:
@@ -32,7 +34,7 @@ class HuffmanTable:
     def to_bytes(self) -> bytes:
         num_code_len = 16
 
-        marker = 0xFFC4.to_bytes(2, "big")
+        marker_bytes = HuffmanTable.MARKER.to_bytes(2, "big")
         segment_length = (3 + num_code_len + len(self.huffman_table)).to_bytes(2, "big")
 
         info = ((self.table_class << 4) | self.table_id).to_bytes()
@@ -45,7 +47,7 @@ class HuffmanTable:
         sorted_items = sorted(self.huffman_table.items(), key=lambda x: x[1][1])
         symbol_bytes = bytes(symbol for symbol, _ in sorted_items)
 
-        return marker + segment_length + info + code_length_count_list_bytes + symbol_bytes
+        return marker_bytes + segment_length + info + code_length_count_list_bytes + symbol_bytes
 
     @classmethod
     def from_bytes(cls, data: bytes) -> Self:
@@ -53,7 +55,7 @@ class HuffmanTable:
             raise ValueError("data is too short")
 
         marker = int.from_bytes(data[0:2], "big")
-        if marker != 0xFFC4:
+        if marker != cls.MARKER:
             raise ValueError("invalid marker")
 
         segment_length = int.from_bytes(data[2:4], "big")
