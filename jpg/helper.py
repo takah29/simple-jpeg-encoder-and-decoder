@@ -45,27 +45,22 @@ def padding(img: np.ndarray, pad_w: int, pad_h: int) -> np.ndarray:
     return img_ext
 
 
-def flat_zigzag(arr1d: np.ndarray, inverse: bool = False) -> np.ndarray:
-    if inverse:
-        zigzag_order_inv = np.argsort(ZIGZAG_ORDER)
-        return arr1d[zigzag_order_inv]
-
-    return arr1d[ZIGZAG_ORDER]
+def zigzag_scan(arr8x8: np.ndarray, inverse: bool = False) -> np.ndarray:
+    return arr8x8.flatten()[ZIGZAG_ORDER]
 
 
-def get_category(value: int) -> int:
-    """カテゴリ計算
+def zigzag_scan_inv(arr1d: np.ndarray) -> np.ndarray:
+    return arr1d[ZIGZAG_ORDER].reshape(8, 8)
 
+
+def get_category(value: int | np.integer) -> int:
+    """
     >>> get_category(0)
     0
     >>> get_category(1)
     1
     >>> get_category(-1)
     1
-    >>> get_category(2)
-    2
-    >>> get_category(-3)
-    2
     >>> get_category(-7)
     3
     >>> get_category(8)

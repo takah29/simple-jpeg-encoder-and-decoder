@@ -1,7 +1,9 @@
 from dataclasses import dataclass
-import numpy as np
 from typing import Self
-from jpg.helper import flat_zigzag
+
+import numpy as np
+
+from jpg.helper import zigzag_scan, zigzag_scan_inv
 
 
 def _quantization_table(quality: int = 50) -> np.ndarray:
@@ -48,9 +50,9 @@ class QuantizationTable:
         info = ((self.precision << 4) | self.table_id).to_bytes()
 
         if self.precision == 0:
-            table_bytes = flat_zigzag(self.values.flatten()).astype(np.uint8).tobytes()
+            table_bytes = zigzag_scan(self.values).astype(np.uint8).tobytes()
         else:
-            table_bytes = flat_zigzag(self.values.flatten()).astype(">u2").tobytes()
+            table_bytes = zigzag_scan(self.values).astype(">u2").tobytes()
 
         return marker_bytes + segment_length + info + table_bytes
 
@@ -76,7 +78,7 @@ class QuantizationTable:
         else:
             arr1d = np.frombuffer(data[5:], dtype=">u2")
 
-        values = flat_zigzag(arr1d, inverse=True).reshape(8, 8)
+        values = zigzag_scan_inv(arr1d, inverse=True).reshape(8, 8)
 
         return cls(precision=precision, table_id=table_id, values=values)
 

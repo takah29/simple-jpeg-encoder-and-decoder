@@ -1,6 +1,6 @@
 import csv
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Self
 
 
@@ -10,14 +10,14 @@ class HuffmanTable:
 
     table_class: int
     table_id: int
-    huffman_table: dict[int, tuple[int, int]]  # symbol -> (code_word, code_len)
+    table: dict[int, tuple[int, int]]  # symbol -> (code_word, code_len)
 
     @classmethod
     def from_file(cls, filepath: Path, table_class: int, table_id: int) -> Self:
         return HuffmanTable(
             table_class=table_class,
             table_id=table_id,
-            huffman_table=cls._create_huffman_table(filepath),
+            table=cls._create_huffman_table(filepath),
         )
 
     @staticmethod
@@ -35,16 +35,16 @@ class HuffmanTable:
         num_code_len = 16
 
         marker_bytes = HuffmanTable.MARKER.to_bytes(2, "big")
-        segment_length = (3 + num_code_len + len(self.huffman_table)).to_bytes(2, "big")
+        segment_length = (3 + num_code_len + len(self.table)).to_bytes(2, "big")
 
         info = ((self.table_class << 4) | self.table_id).to_bytes()
 
         code_length_count_list = [0] * num_code_len
-        for _, code_len in self.huffman_table.values():
+        for _, code_len in self.table.values():
             code_length_count_list[code_len - 1] += 1
 
         code_length_count_list_bytes = bytes(code_length_count_list)
-        sorted_items = sorted(self.huffman_table.items(), key=lambda x: x[1][1])
+        sorted_items = sorted(self.table.items(), key=lambda x: x[1][1])
         symbol_bytes = bytes(symbol for symbol, _ in sorted_items)
 
         return marker_bytes + segment_length + info + code_length_count_list_bytes + symbol_bytes
