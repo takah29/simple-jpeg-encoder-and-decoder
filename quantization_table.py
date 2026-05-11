@@ -36,7 +36,7 @@ class QuantizationTable:
         if table_id not in (0, 1):
             raise ValueError("table_id must be 0 or 1")
 
-        return cls(precision=precision, table_id=table_id, values=_quantization_table())
+        return cls(precision, table_id, _quantization_table())
 
     def to_bytes(self) -> bytes:
         marker = 0xFFDB.to_bytes(2, "big")
