@@ -43,18 +43,14 @@ class StartOfScan:
         cls,
         image_shape: tuple[int, ...],
     ) -> Self:
-        if len(image_shape) == 3:
+        if len(image_shape) == 2:
+            num_components = 1
+            huffman_table_ids = [HuffmanTableId(1, 0, 0)]
+        elif len(image_shape) == 3:
             num_components = image_shape[2]
             huffman_table_ids = [
-                HuffmanTableId(
-                    component_id=i + 1, dc_huffman_table_id=min(i, 1), ac_huffman_table_id=min(i, 1)
-                )
-                for i in range(num_components)
-            ]
-        elif len(image_shape) == 2:
-            num_components = 1
-            huffman_table_ids = [
-                HuffmanTableId(component_id=1, dc_huffman_table_id=0, ac_huffman_table_id=0)
+                HuffmanTableId(1, 0, 0),
+                HuffmanTableId(2, 1, 1),
             ]
         else:
             msg = f"Invalid image shape: {image_shape}. Expected GrayScale or RGB image."
