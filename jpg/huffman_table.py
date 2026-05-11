@@ -27,7 +27,11 @@ class HuffmanTable:
             reader = csv.DictReader(f)
 
             for i, row in enumerate(reader):
-                result[i] = (int(row["code_word"]), int(row["code_len"]))
+                code_len = int(row["code_len"])
+                if code_len == 0:
+                    continue
+
+                result[i] = (int(row["code_word"]), code_len)
 
         return result
 
@@ -35,8 +39,6 @@ class HuffmanTable:
         num_code_len = 16
 
         marker_bytes = HuffmanTable.MARKER.to_bytes(2, "big")
-        segment_length = (3 + num_code_len + len(self.table)).to_bytes(2, "big")
-
         info = ((self.table_class << 4) | self.table_id).to_bytes()
 
         code_length_count_list = [0] * num_code_len
@@ -44,8 +46,10 @@ class HuffmanTable:
             code_length_count_list[code_len - 1] += 1
 
         code_length_count_list_bytes = bytes(code_length_count_list)
-        sorted_items = sorted(self.table.items(), key=lambda x: x[1][1])
+        sorted_items = sorted(self.table.items(), key=lambda x: (x[1][1], x[0]))
         symbol_bytes = bytes(symbol for symbol, _ in sorted_items)
+
+        segment_length = (3 + num_code_len + len(symbol_bytes)).to_bytes(2, "big")
 
         return marker_bytes + segment_length + info + code_length_count_list_bytes + symbol_bytes
 
@@ -84,10 +88,23 @@ class HuffmanTable:
 
 
 if __name__ == "__main__":
-    huffman_table = HuffmanTable.from_file(Path("./huffman_code/ydc_hc.csv"), 1, 1)
-    print(huffman_table)
-    huffman_table_bytes = huffman_table.to_bytes()
-    print(huffman_table_bytes)
-    huffman_table_from_bytes = HuffmanTable.from_bytes(huffman_table_bytes)
-    print(huffman_table_from_bytes)
-    assert huffman_table == huffman_table_from_bytes
+    huffman_table_dc1 = HuffmanTable.from_file(Path("./huffman_code/ydc_hc.csv"), 0, 0)
+    huffman_table_ac1 = HuffmanTable.from_file(Path("./huffman_code/yac_hc.csv"), 1, 0)
+    huffman_table_dc2 = HuffmanTable.from_file(Path("./huffman_code/uvdc_hc.csv"), 0, 1)
+    huffman_table_ac2 = HuffmanTable.from_file(Path("./huffman_code/uvac_hc.csv"), 1, 1)
+
+    huffman_table_list = {
+        "dc1": huffman_table_dc1,
+        "ac1": huffman_table_ac1,
+        "dc2": huffman_table_dc2,
+        "ac2": huffman_table_ac2,
+    }
+
+    for name, table in huffman_table_list.items():
+        print(f"===== {name}=====")
+        print(table)
+        table_bytes = table.to_bytes()
+        table_from_bytes = HuffmanTable.from_bytes(table_bytes)
+        print(table_from_bytes)
+
+        assert table == table_from_bytes
