@@ -52,20 +52,17 @@ class FrameInformation:
             msg = f"Invalid image shape: {image_shape}. Expected GrayScale or RGB image."
             raise ValueError(msg)
 
-        sampling_info_list = []
-        for i in range(num_components):
-            if i == 0:
-                sampling_width = 2
-                sampling_height = 2
-                quantization_table_id = 0
-            else:
-                sampling_width = 1
-                sampling_height = 1
-                quantization_table_id = 1
-
-            sampling_info_list.append(
-                SamplingInfo(i + 1, sampling_width, sampling_height, quantization_table_id)
-            )
+        if num_components == 1:
+            sampling_info_list = [SamplingInfo(1, 1, 1, 0)]
+        elif num_components == 3:
+            sampling_info_list = [
+                SamplingInfo(1, 2, 2, 0),
+                SamplingInfo(2, 1, 1, 1),
+                SamplingInfo(3, 1, 1, 1),
+            ]
+        else:
+            msg = f"Invalid image shape: {image_shape}. Expected GrayScale or RGB image."
+            raise ValueError(msg)
 
         return cls(sample_precision, image_height, image_width, num_components, sampling_info_list)
 
