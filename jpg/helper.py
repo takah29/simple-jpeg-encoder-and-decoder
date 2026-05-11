@@ -35,22 +35,37 @@ def idct(block_dct: np.ndarray, dct_mat: np.ndarray) -> np.ndarray:
 
 
 def padding(img: np.ndarray, pad_w: int, pad_h: int) -> np.ndarray:
-    w_ext = np.tile(img[:, -1:], (1, pad_w, 1))
-    print(w_ext.shape, img.shape)
+    if img.ndim == 2:
+        w_ext_shape = (1, pad_w)
+        h_ext_shape = (pad_h, 1)
+    elif img.ndim == 3:
+        w_ext_shape = (1, pad_w, 1)
+        h_ext_shape = (pad_h, 1, 1)
+    else:
+        msg = f"Invalid image shape: {img.shape}. Expected GrayScale(ndim=2) or RGB(ndim=3) image."
+        raise ValueError(msg)
+
+    w_ext = np.tile(img[:, -1:], w_ext_shape)
     img_ext = np.concatenate((img, w_ext), axis=1)
 
-    h_ext = np.tile(img_ext[-1:], (pad_h, 1, 1))
+    h_ext = np.tile(img_ext[-1:], h_ext_shape)
     img_ext = np.concatenate((img_ext, h_ext), axis=0)
 
     return img_ext
 
 
-def zigzag_scan(arr8x8: np.ndarray, inverse: bool = False) -> np.ndarray:
+def zigzag_scan(arr8x8: np.ndarray) -> np.ndarray:
     return arr8x8.flatten()[ZIGZAG_ORDER]
 
 
 def zigzag_scan_inv(arr1d: np.ndarray) -> np.ndarray:
-    return arr1d[ZIGZAG_ORDER].reshape(8, 8)
+    """
+
+    >>> arr8x8 = np.arange(64).reshape(8,8)
+    >>> (arr8x8 == zigzag_scan_inv(zigzag_scan(arr8x8))).all()
+    True
+    """
+    return arr1d[np.argsort(ZIGZAG_ORDER)].reshape(8, 8)
 
 
 def get_category(value: int | np.integer) -> int:
@@ -69,11 +84,46 @@ def get_category(value: int | np.integer) -> int:
     11
     """
 
-    return abs(value).bit_length()
+    return abs(int(value)).bit_length()
 
 
-def encode_runlength(ac_coeffs: np.ndarray) -> list:
-    """ランレングス符号化
+def get_encval_and_category(value: int) -> tuple[int, int]:
+    """
+    >>> val, _ = get_encval_and_category(0)
+    >>> f'{bin(val)}'
+    '0b0'
+    >>> val, _ = get_encval_and_category(0b1)
+    >>> f'{bin(val)}'
+    '0b1'
+    >>> val, _ = get_encval_and_category(-0b1)
+    >>> f'{bin(val)}'
+    '0b0'
+    >>> val, _ = get_encval_and_category(-0b111)
+    >>> f'{bin(val)}'
+    '0b0'
+    >>> val, _ = get_encval_and_category(0b1000)
+    >>> f'{bin(val)}'
+    '0b1000'
+    >>> val, _ = get_encval_and_category(-0b11111111111)
+    >>> f'{bin(val)}'
+    '0b0'
+    """
+    if value == 0:
+        return 0, 0
+
+    cat = get_category(value)
+
+    if value < 0:
+        enc_val = (1 << cat) - 1 + value
+    else:
+        enc_val = value
+
+    return enc_val, cat
+
+
+def encode_runlength(ac_coeffs: np.ndarray) -> list[tuple[int, int, int]]:
+    """
+    return [(runlength, category, value), ...]
 
     >>> encode_runlength([0] * 63)
     [(0, 0, 0)]
@@ -141,4 +191,8 @@ def to_ycbcr(img: np.ndarray) -> np.ndarray:
     )
     return (to_ycbcr @ img[..., None]).squeeze()
 
-def encode()
+
+if __name__ == "__main__":
+    import doctest
+
+    doctest.testmod()

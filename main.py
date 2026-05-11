@@ -1,10 +1,12 @@
+import subprocess
+from pathlib import Path
+
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
-from pathlib import Path
-import subprocess
 from encoder import jpg_encode
+from jpg.helper import dct_matrix
 
 matplotlib.use("QtAgg")
 
@@ -20,12 +22,15 @@ def main():
             return
 
     img = Image.open(img_path)
-    img = jpg_encode(np.array(img))
+    img = np.array(img.convert("L")).astype(np.int32)
 
-    plt.imshow(img)
-    plt.show()
+    # plt.imshow(img, vmin=0, vmax=255, cmap="gray")
+    # plt.savefig("original.png")
+    # plt.show()
 
-    img_arr = jpg_encode(np.array(img))
+    jpg_bytes = jpg_encode(img)
+    with open("compressed.jpg", "wb") as f:
+        f.write(jpg_bytes)
 
 
 if __name__ == "__main__":

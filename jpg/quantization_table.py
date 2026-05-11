@@ -34,13 +34,13 @@ class QuantizationTable:
     values: np.ndarray  # shape = (8, 8)
 
     @classmethod
-    def create(cls, precision: int, table_id: int) -> Self:
+    def create(cls, precision: int, table_id: int, quality: int = 90) -> Self:
         if precision not in (0, 1):
             raise ValueError("precision must be 0 or 1")
         if table_id not in (0, 1):
             raise ValueError("table_id must be 0 or 1")
 
-        return cls(precision, table_id, _quantization_table())
+        return cls(precision, table_id, _quantization_table(quality))
 
     def to_bytes(self) -> bytes:
         marker_bytes = QuantizationTable.MARKER.to_bytes(2, "big")
@@ -78,7 +78,7 @@ class QuantizationTable:
         else:
             arr1d = np.frombuffer(data[5:], dtype=">u2")
 
-        values = zigzag_scan_inv(arr1d, inverse=True).reshape(8, 8)
+        values = zigzag_scan_inv(arr1d).reshape(8, 8)
 
         return cls(precision=precision, table_id=table_id, values=values)
 
