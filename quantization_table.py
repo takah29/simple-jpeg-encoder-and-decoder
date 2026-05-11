@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import numpy as np
 from typing import Self
+from helper import flat_zigzag
 
 
 def _quantization_table(quality: int = 50) -> np.ndarray:
@@ -38,9 +39,58 @@ class QuantizationTable:
         return cls(precision=precision, table_id=table_id, values=_quantization_table())
 
     def to_bytes(self) -> bytes:
-        pass
+        marker = 0xFFDB.to_bytes(2, "big")
+        segment_length = (3 + self.values.size * (2 if self.precision == 1 else 1)).to_bytes(
+            2, "big"
+        )
+        info = ((self.precision << 4) | self.table_id).to_bytes()
+
+        if self.precision == 0:
+            table_bytes = flat_zigzag(self.values.flatten()).astype(np.uint8).tobytes()
+        else:
+            table_bytes = flat_zigzag(self.values.flatten()).astype(">u2").tobytes()
+
+        return marker + segment_length + info + table_bytes
+
+    @classmethod
+    def from_bytes(cls, data: bytes) -> Self:
+        if len(data) < 4:
+            raise ValueError("data is too short")
+
+        marker = int.from_bytes(data[0:2], "big")
+        if marker != 0xFFDB:
+            raise ValueError("invalid marker")
+
+        segment_length = int.from_bytes(data[2:4], "big")
+        if len(data) != segment_length + 2:
+            raise ValueError("invalid segment length")
+
+        info = data[4]
+        precision = (info >> 4) & 0x0F
+        table_id = info & 0x0F
+
+        if precision == 0:
+            arr1d = np.frombuffer(data[5:], dtype=np.uint8)
+        else:
+            arr1d = np.frombuffer(data[5:], dtype=">u2")
+
+        values = flat_zigzag(arr1d, inverse=True).reshape(8, 8)
+
+        return cls(precision=precision, table_id=table_id, values=values)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, QuantizationTable):
+            return NotImplemented
+
+        return (
+            self.precision == other.precision
+            and self.table_id == other.table_id
+            and np.array_equal(self.values, other.values)
+        )
 
 
 if __name__ == "__main__":
     q_table = QuantizationTable.create(0, 0)
     print(q_table)
+
+    assert q_table == QuantizationTable.from_bytes(q_table.to_bytes())

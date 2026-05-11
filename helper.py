@@ -1,5 +1,16 @@
 import numpy as np
 
+ZIGZAG_ORDER = [
+    0,  1,  5,  6, 14, 15, 27, 28,
+    2,  4,  7, 13, 16, 26, 29, 42,
+    3,  8, 12, 17, 25, 30, 41, 43,
+    9, 11, 18, 24, 31, 40, 44, 53,
+    10, 19, 23, 32, 39, 45, 52, 54,
+    20, 22, 33, 38, 46, 51, 55, 60,
+    21, 34, 37, 47, 50, 56, 59, 61,
+    35, 36, 48, 49, 57, 58, 62, 63
+]  # fmt: skip
+
 
 def dct_matrix(n: int = 8) -> np.ndarray:
     mat = np.zeros((n, n))
@@ -31,19 +42,12 @@ def padding(img: np.ndarray, pad_w: int, pad_h: int) -> np.ndarray:
     return img_ext
 
 
-def flat_zigzag(block: np.ndarray) -> np.ndarray:
-    ZIGZAG_ORDER = [
-        0,  1,  5,  6, 14, 15, 27, 28,
-        2,  4,  7, 13, 16, 26, 29, 42,
-        3,  8, 12, 17, 25, 30, 41, 43,
-        9, 11, 18, 24, 31, 40, 44, 53,
-        10, 19, 23, 32, 39, 45, 52, 54,
-        20, 22, 33, 38, 46, 51, 55, 60,
-        21, 34, 37, 47, 50, 56, 59, 61,
-        35, 36, 48, 49, 57, 58, 62, 63
-    ]  # fmt: skip
+def flat_zigzag(arr1d: np.ndarray, inverse: bool = False) -> np.ndarray:
+    if inverse:
+        zigzag_order_inv = np.argsort(ZIGZAG_ORDER)
+        return arr1d[zigzag_order_inv]
 
-    return block.flatten()[ZIGZAG_ORDER]
+    return arr1d[ZIGZAG_ORDER]
 
 
 def get_category(value: int) -> int:
