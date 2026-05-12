@@ -1,4 +1,5 @@
 import numpy as np
+from jpg.frame_information import FrameInformation
 
 START_OF_IMAGE = 0xFFD8
 END_OF_IMAGE = 0xFFD9
@@ -182,6 +183,10 @@ def encode_runlength(ac_coeffs: np.ndarray) -> list[tuple[int, int, int]]:
 
 
 def to_ycbcr(img: np.ndarray) -> np.ndarray:
+    if img.ndim != 3:
+        msg = f"Invalid image shape: {img.shape}. Expected RGB image."
+        raise ValueError(msg)
+
     to_ycbcr = np.array(
         [
             [0.299, 0.587, 0.114],
@@ -190,6 +195,45 @@ def to_ycbcr(img: np.ndarray) -> np.ndarray:
         ]
     )
     return (to_ycbcr @ img[..., None]).squeeze()
+
+
+def chroma_subsampling(
+    img: np.ndarray, frame_information: FrameInformation
+) -> tuple[np.ndarray, np.ndarray | None]:
+    n = 8
+    if img.ndim == 3:
+        main_components = img[:, :, 0]
+        main_components = main_components.reshape(
+            main_components.shape[0] // n, n, main_components.shape[1] // n, n
+        )
+        main_components = main_components.transpose(0, 2, 1, 3)
+
+        sub_components = img[:, :, 1:]
+
+        # resize
+        width_sampling_factor = frame_information.sampling_info_list[0].width_sampling_factor
+        height_sampling_factor = frame_information.sampling_info_list[0].height_sampling_factor
+        sub_components = sub_components.reshape(
+            sub_components.shape[0] // height_sampling_factor,
+            height_sampling_factor,
+            sub_components.shape[1] // width_sampling_factor,
+            width_sampling_factor,
+            2,
+        )
+        sub_components = sub_components.transpose(0, 2, 1, 3, 4)
+        sub_components = sub_components.mean(axis=(2, 3))
+
+        sub_components = sub_components.reshape(
+            sub_components.shape[0] // n, n, sub_components.shape[1] // n, n, 2
+        )
+    elif img.ndim == 2:
+        main_components = img
+        sub_components = None
+    else:
+        msg = f"Invalid image shape: {img.shape}. Expected GrayScale(ndim=2) or RGB(ndim=3) image."
+        raise ValueError(msg)
+
+    return main_components, sub_components
 
 
 if __name__ == "__main__":

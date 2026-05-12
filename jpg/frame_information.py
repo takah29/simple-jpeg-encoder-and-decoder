@@ -5,14 +5,14 @@ from typing import Self
 @dataclass
 class SamplingInfo:
     component_id: int
-    sampling_width: int
-    sampling_height: int
+    width_sampling_factor: int
+    height_sampling_factor: int
     quantization_table_id: int
 
     def to_bytes(self) -> bytes:
         return (
             self.component_id.to_bytes()
-            + ((self.sampling_width << 4) | self.sampling_height).to_bytes()
+            + ((self.width_sampling_factor << 4) | self.height_sampling_factor).to_bytes()
             + self.quantization_table_id.to_bytes()
         )
 

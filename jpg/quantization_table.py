@@ -5,24 +5,36 @@ import numpy as np
 
 from jpg.helper import zigzag_scan, zigzag_scan_inv
 
+QY_BASE = [
+    [16, 11, 10, 16, 24, 40, 51, 61],
+    [12, 12, 14, 19, 26, 58, 60, 55],
+    [14, 13, 16, 24, 40, 57, 69, 56],
+    [14, 17, 22, 29, 51, 87, 80, 62],
+    [18, 22, 37, 56, 68, 109, 103, 77],
+    [24, 35, 55, 64, 81, 104, 113, 92],
+    [49, 64, 78, 87, 103, 121, 120, 101],
+    [72, 92, 95, 98, 112, 100, 103, 99],
+]
 
-def _quantization_table(quality: int) -> np.ndarray:
+QC_BASE = [
+    [17, 18, 24, 47, 99, 99, 99, 99],
+    [18, 21, 26, 66, 99, 99, 99, 99],
+    [24, 26, 56, 99, 99, 99, 99, 99],
+    [47, 66, 99, 99, 99, 99, 99, 99],
+    [99, 99, 99, 99, 99, 99, 99, 99],
+    [99, 99, 99, 99, 99, 99, 99, 99],
+    [99, 99, 99, 99, 99, 99, 99, 99],
+    [99, 99, 99, 99, 99, 99, 99, 99],
+]
+
+
+def _quantization_table(is_main_component: bool, quality: int) -> np.ndarray:
     if not (0 < quality <= 100):
         msg = f"Invalid quality: {quality}. Expected 0 < quality < 50."
         raise ValueError(msg)
 
-    q_base = np.array(
-        [
-            [16, 11, 10, 16, 24, 40, 51, 61],
-            [12, 12, 14, 19, 26, 58, 60, 55],
-            [14, 13, 16, 24, 40, 57, 69, 56],
-            [14, 17, 22, 29, 51, 87, 80, 62],
-            [18, 22, 37, 56, 68, 109, 103, 77],
-            [24, 35, 55, 64, 81, 104, 113, 92],
-            [49, 64, 78, 87, 103, 121, 120, 101],
-            [72, 92, 95, 98, 112, 100, 103, 99],
-        ]
-    )
+    q_base = np.array(QY_BASE) if is_main_component else np.array(QC_BASE)
+
     scale = 50 / quality if quality <= 50 else (100 - quality) / 50
     q_scaled = scale * q_base
     q = np.clip(np.floor(q_scaled + 0.5), 1.0, 255.0).astype(np.int32)
@@ -39,13 +51,15 @@ class QuantizationTable:
     values: np.ndarray  # shape = (8, 8)
 
     @classmethod
-    def create(cls, precision: int, table_id: int, quality: int = 90) -> Self:
+    def create(
+        cls, precision: int, table_id: int, is_main_component: bool, quality: int = 90
+    ) -> Self:
         if precision not in (0, 1):
             raise ValueError("precision must be 0 or 1")
         if table_id not in (0, 1):
             raise ValueError("table_id must be 0 or 1")
 
-        return cls(precision, table_id, _quantization_table(quality))
+        return cls(precision, table_id, _quantization_table(is_main_component, quality))
 
     def to_bytes(self) -> bytes:
         marker_bytes = QuantizationTable.MARKER.to_bytes(2, "big")
@@ -99,7 +113,7 @@ class QuantizationTable:
 
 
 if __name__ == "__main__":
-    q_table = QuantizationTable.create(0, 0)
+    q_table = QuantizationTable.create(0, 0, True, 90)
     print(q_table)
 
     assert q_table == QuantizationTable.from_bytes(q_table.to_bytes())

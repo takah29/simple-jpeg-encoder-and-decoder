@@ -51,6 +51,7 @@ class StartOfScan:
             huffman_table_ids = [
                 HuffmanTableId(1, 0, 0),
                 HuffmanTableId(2, 1, 1),
+                HuffmanTableId(3, 1, 1),
             ]
         else:
             msg = f"Invalid image shape: {image_shape}. Expected GrayScale or RGB image."
