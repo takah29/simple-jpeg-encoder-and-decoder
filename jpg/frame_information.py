@@ -40,7 +40,7 @@ class FrameInformation:
     sampling_info_list: list[SamplingInfo]
 
     @classmethod
-    def create(cls, image_shape: tuple[int, ...], sample_precision: int = 8) -> Self:
+    def create(cls, image_shape: tuple[int, ...], mcu_size_hw_list: list[tuple[int, int]]) -> Self:
         sample_precision = 8
 
         if len(image_shape) == 3:
@@ -56,9 +56,9 @@ class FrameInformation:
             sampling_info_list = [SamplingInfo(1, 1, 1, 0)]
         elif num_components == 3:
             sampling_info_list = [
-                SamplingInfo(1, 2, 2, 0),
-                SamplingInfo(2, 1, 1, 1),
-                SamplingInfo(3, 1, 1, 1),
+                SamplingInfo(1, *mcu_size_hw_list[0], 0),
+                SamplingInfo(2, *mcu_size_hw_list[1], 1),
+                SamplingInfo(3, *mcu_size_hw_list[2], 1),
             ]
         else:
             msg = f"Invalid image shape: {image_shape}. Expected GrayScale or RGB image."

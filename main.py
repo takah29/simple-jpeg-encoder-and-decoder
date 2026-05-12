@@ -2,30 +2,29 @@ import subprocess
 from pathlib import Path
 
 import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
+
 from encoder import jpg_encode
-from jpg.helper import dct_matrix
 
 matplotlib.use("QtAgg")
 
 sub_sampling_ratio = {
     "4:2:0": {
-        "mcu_size_hw": [(2, 2), (1, 1), (1, 1)],
-        "sample_step_hw": [(1, 1), (2, 2), (2, 2)],
+        "mcu_size_hw_list": [(2, 2), (1, 1), (1, 1)],
+        "sample_step_hw_list": [(1, 1), (2, 2), (2, 2)],
     },
     "4:2:2": {
-        "mcu_size_hw": [(1, 2), (1, 1), (1, 1)],
-        "sample_step_hw": [(1, 1), (1, 2), (1, 2)],
+        "mcu_size_hw_list": [(1, 2), (1, 1), (1, 1)],
+        "sample_step_hw_list": [(1, 1), (1, 2), (1, 2)],
     },
     "4:4:4": {
-        "mcu_size_hw": [(1, 1), (1, 1), (1, 1)],
-        "sample_step_hw": [(1, 1), (1, 1), (1, 1)],
+        "mcu_size_hw_list": [(1, 1), (1, 1), (1, 1)],
+        "sample_step_hw_list": [(1, 1), (1, 1), (1, 1)],
     },
     "grayscale": {
-        "mcu_size_hw": [(1, 1)],
-        "sample_step_hw": [(1, 1)],
+        "mcu_size_hw_list": [(1, 1)],
+        "sample_step_hw_list": [(1, 1)],
     },
 }
 

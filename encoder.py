@@ -1,64 +1,23 @@
 from pathlib import Path
 from typing import Self
+
 import numpy as np
 
 from jpg.frame_information import FrameInformation
 from jpg.helper import (
     END_OF_IMAGE,
     START_OF_IMAGE,
+    JpegBitWriter,
     dct_matrix,
     encode_runlength,
     get_encval_and_category,
-    zigzag_scan,
     padding,
     to_ycbcr,
-    chroma_subsampling,
+    zigzag_scan,
 )
 from jpg.huffman_table import HuffmanTable
 from jpg.quantization_table import QuantizationTable
 from jpg.start_of_scan import StartOfScan
-
-
-class JpegBitWriter:
-    def __init__(self) -> None:
-        self.output = bytearray()
-        self.buffer = 0
-        self.bit_count = 0
-
-    def write_bits(self, code: int | np.uint8, length: int | np.uint8) -> None:
-        code = int(code)
-        length = int(length)
-
-        if length == 0:
-            return
-
-        self.buffer = (self.buffer << length) | code
-        self.bit_count += length
-
-        while self.bit_count >= 8:
-            byte = (self.buffer >> (self.bit_count - 8)) & 0xFF
-            self.output.append(byte)
-
-            # byte stuffing
-            if byte == 0xFF:
-                self.output.append(0x00)
-
-            self.bit_count -= 8
-            bit_mask = (1 << self.bit_count) - 1
-            self.buffer &= bit_mask
-
-    def finalize(self) -> None:
-        if self.bit_count > 0:
-            shift = 8 - self.bit_count
-            byte_padded = ((self.buffer << shift) | ((1 << shift) - 1)) & 0xFF
-            self.output.append(byte_padded)
-
-            # byte stuffing
-            if byte_padded == 0xFF:
-                self.output.append(0x00)
-
-            self.buffer = 0
-            self.bit_count = 0
 
 
 class DctComponent:
@@ -137,7 +96,7 @@ class DctComponent:
         mcu_h, mcu_w = mcu_size_hw
         img = img.reshape(
             img.shape[0] // (mcu_h * n), mcu_h, n, img.shape[1] // (mcu_w * n), mcu_w, n
-        ).transpose(0, 3, 1, 4, 2, 5)  # (n_blocks_h, n_blocks_w, h_size, w_size, n, n)
+        ).transpose(0, 3, 1, 4, 2, 5)  # (n_mcu_h, n_mcu_w, mcu_h, mcu_w, n, n)
 
         return img
 
@@ -204,68 +163,84 @@ def _encode_dct_blocks(
 
 
 def jpg_encode(
-    img: np.ndarray, mcu_size_hw: list[tuple[int, int]], sample_step_hw: list[tuple[int, int]]
+    img: np.ndarray,
+    mcu_size_hw_list: list[tuple[int, int]],
+    sample_step_hw_list: list[tuple[int, int]],
 ) -> bytes:
+    frame_information = FrameInformation.create(img.shape, mcu_size_hw_list)
     start_of_scan = StartOfScan.create(img.shape)
-    main_quantization_table = QuantizationTable.create(0, 0, True, 50)
-    sub_quantization_table = QuantizationTable.create(0, 1, False, 50)
 
-    frame_information = FrameInformation.create(img.shape, 8)
+    q_table_y = QuantizationTable.create(0, 0, True, 50)
+    q_table_c = QuantizationTable.create(0, 1, False, 50)
 
-    dc_huffman_table0 = HuffmanTable.from_file(Path("./huffman_code/ydc_hc.csv"), 0, 0)
-    dc_huffman_table1 = HuffmanTable.from_file(Path("./huffman_code/uvdc_hc.csv"), 0, 1)
-
-    ac_huffman_table0 = HuffmanTable.from_file(Path("./huffman_code/yac_hc.csv"), 1, 0)
-    ac_huffman_table1 = HuffmanTable.from_file(Path("./huffman_code/uvac_hc.csv"), 1, 1)
+    ydc_ht = HuffmanTable.from_file(Path("./huffman_code/ydc_hc.csv"), 0, 0)
+    yac_ht = HuffmanTable.from_file(Path("./huffman_code/yac_hc.csv"), 1, 0)
+    uvdc_ht = HuffmanTable.from_file(Path("./huffman_code/uvdc_hc.csv"), 0, 1)
+    uvac_ht = HuffmanTable.from_file(Path("./huffman_code/uvac_hc.csv"), 1, 1)
 
     img = img.astype(np.float64)
     if img.ndim == 3:
-        # RGB -> YCbCr
-        img = to_ycbcr(img) + np.array([-128, 0, 0])
-
-    main_component = DctComponent.create(
-        img[:, :, 0],
-        main_quantization_table,
-        dc_huffman_table0,
-        ac_huffman_table0,
-        mcu_size_hw[0],
-        sample_step_hw[0],
-    )
-    sub_component1 = DctComponent.create(
-        img[:, :, 1],
-        sub_quantization_table,
-        dc_huffman_table1,
-        ac_huffman_table1,
-        mcu_size_hw[1],
-        sample_step_hw[1],
-    )
-    sub_component2 = DctComponent.create(
-        img[:, :, 2],
-        sub_quantization_table,
-        dc_huffman_table1,
-        ac_huffman_table1,
-        mcu_size_hw[2],
-        sample_step_hw[2],
-    )
-
-    # Encode DCT blocks
-    encoded_dct_blocks = _encode_dct_blocks([main_component, sub_component1, sub_component2])
-
-    return b"".join(
-        [
-            START_OF_IMAGE.to_bytes(2, "big"),
-            main_quantization_table.to_bytes(),
-            sub_quantization_table.to_bytes(),
-            frame_information.to_bytes(),
-            dc_huffman_table0.to_bytes(),
-            dc_huffman_table1.to_bytes(),
-            ac_huffman_table0.to_bytes(),
-            ac_huffman_table1.to_bytes(),
-            start_of_scan.to_bytes(),
-            encoded_dct_blocks,
-            END_OF_IMAGE.to_bytes(2, "big"),
+        # RGB
+        img_ycbcr = to_ycbcr(img) + np.array([-128, 0, 0])
+        components = [
+            DctComponent.create(
+                img_ycbcr[:, :, 0],
+                q_table_y,
+                ydc_ht,
+                yac_ht,
+                mcu_size_hw_list[0],
+                sample_step_hw_list[0],
+            ),
+            DctComponent.create(
+                img_ycbcr[:, :, 1],
+                q_table_c,
+                uvdc_ht,
+                uvac_ht,
+                mcu_size_hw_list[1],
+                sample_step_hw_list[1],
+            ),
+            DctComponent.create(
+                img_ycbcr[:, :, 2],
+                q_table_c,
+                uvdc_ht,
+                uvac_ht,
+                mcu_size_hw_list[2],
+                sample_step_hw_list[2],
+            ),
         ]
-    )
+
+        headers = [
+            START_OF_IMAGE.to_bytes(2, "big"),
+            q_table_y.to_bytes(),
+            q_table_c.to_bytes(),
+            frame_information.to_bytes(),
+            ydc_ht.to_bytes(),
+            yac_ht.to_bytes(),
+            uvdc_ht.to_bytes(),
+            uvac_ht.to_bytes(),
+            start_of_scan.to_bytes(),
+        ]
+    else:
+        # Grayscale
+        img_gray = img - 128.0
+        components = [
+            DctComponent.create(
+                img_gray, q_table_y, ydc_ht, yac_ht, mcu_size_hw_list[0], sample_step_hw_list[0]
+            )
+        ]
+
+        headers = [
+            START_OF_IMAGE.to_bytes(2, "big"),
+            q_table_y.to_bytes(),
+            frame_information.to_bytes(),
+            ydc_ht.to_bytes(),
+            yac_ht.to_bytes(),
+            start_of_scan.to_bytes(),
+        ]
+
+    encoded_dct_blocks = _encode_dct_blocks(components)
+
+    return b"".join(headers + [encoded_dct_blocks, END_OF_IMAGE.to_bytes(2, "big")])
 
 
 if __name__ == "__main__":
