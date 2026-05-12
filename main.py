@@ -9,7 +9,7 @@ from encoder import jpg_encode
 
 matplotlib.use("QtAgg")
 
-sub_sampling_ratio = {
+SAMPLING_SETTINGS = {
     "4:2:0": {
         "mcu_size_hw_list": [(2, 2), (1, 1), (1, 1)],
         "sample_step_hw_list": [(1, 1), (2, 2), (2, 2)],
@@ -42,11 +42,16 @@ def main():
     img = Image.open(img_path)
     img = np.array(img).astype(np.int32)
 
-    # plt.imshow(img, vmin=0, vmax=255, cmap="gray")
-    # plt.savefig("original.png")
-    # plt.show()
+    if img.ndim == 3:
+        sampling_setting = SAMPLING_SETTINGS["4:2:0"]
+    elif img.ndim == 2:
+        sampling_setting = SAMPLING_SETTINGS["grayscale"]
+    else:
+        msg = f"Invalid image shape: {img.shape}. Expected GrayScale(ndim=2) or RGB(ndim=3) image."
+        raise ValueError(msg)
 
-    jpg_bytes = jpg_encode(img, **sub_sampling_ratio["4:2:0"])
+    jpg_bytes = jpg_encode(img, **sampling_setting, quality=50)
+
     with open("compressed.jpg", "wb") as f:
         f.write(jpg_bytes)
 
