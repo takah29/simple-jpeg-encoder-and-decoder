@@ -195,8 +195,9 @@ class DctComponent:
             raise ValueError(msg)
 
         # padding
-        pad_w = 7 - ((img.shape[1] - 1) % 8)
-        pad_h = 7 - ((img.shape[0] - 1) % 8)
+        mcu_h, mcu_w = mcu_size_hw
+        pad_w = (mcu_w * 8) - 1 - ((img.shape[1] - 1) % (mcu_w * 8))
+        pad_h = (mcu_h * 8) - 1 - ((img.shape[0] - 1) % (mcu_h * 8))
         img = _padding(img, pad_w, pad_h)
 
         img = cls._chroma_subsampling(img, sample_step_hw)
