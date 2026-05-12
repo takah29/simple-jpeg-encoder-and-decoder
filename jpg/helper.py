@@ -62,7 +62,7 @@ def zigzag_scan_inv(arr1d: np.ndarray) -> np.ndarray:
     """
 
     >>> arr8x8 = np.arange(64).reshape(8,8)
-    >>> (arr8x8 == zigzag_scan_inv(zigzag_scan(arr8x8))).all()
+    >>> bool((arr8x8 == zigzag_scan_inv(zigzag_scan(arr8x8))).all())
     True
     """
     return arr1d[np.argsort(ZIGZAG_ORDER)].reshape(8, 8)
