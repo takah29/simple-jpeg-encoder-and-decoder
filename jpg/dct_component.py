@@ -208,7 +208,7 @@ class DctComponent:
         dct_blocks = _dct(img, dct_mat)
 
         # Quantization
-        quantized_dct_blocks = (dct_blocks / quantization_table.values + 0.5).astype(np.int32)
+        quantized_dct_blocks = np.round(dct_blocks / quantization_table.values).astype(np.int32)
 
         return cls(
             quantized_dct_blocks,
