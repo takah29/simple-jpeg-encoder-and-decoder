@@ -2,31 +2,12 @@ from pathlib import Path
 
 import numpy as np
 
-from jpg.dct_component import DctComponent
+from jpg.dct_component import DctComponent, to_entropy_coded_segment
 from jpg.frame_information import FrameInformation
-from jpg.helper import (
-    END_OF_IMAGE,
-    START_OF_IMAGE,
-    JpegBitWriter,
-    to_ycbcr,
-)
+from jpg.helper import END_OF_IMAGE, START_OF_IMAGE, to_ycbcr
 from jpg.huffman_table import HuffmanTable
 from jpg.quantization_table import QuantizationTable
 from jpg.start_of_scan import StartOfScan
-
-
-def _encode_dct_blocks(
-    dct_component_list: list[DctComponent],
-) -> bytes:
-    bit_writer = JpegBitWriter()
-
-    for mcu_bits_list in zip(*[x.mcu_encoder() for x in dct_component_list]):
-        for mcu_bits in mcu_bits_list:
-            bit_writer.write_bits(*mcu_bits)
-
-    bit_writer.finalize()
-
-    return bytes(bit_writer.output)
 
 
 def jpg_encode(
@@ -106,9 +87,9 @@ def jpg_encode(
             start_of_scan.to_bytes(),
         ]
 
-    encoded_dct_blocks = _encode_dct_blocks(components)
+    entropy_coded_segment = to_entropy_coded_segment(components)
 
-    return b"".join(headers + [encoded_dct_blocks, END_OF_IMAGE.to_bytes(2, "big")])
+    return b"".join(headers + [entropy_coded_segment, END_OF_IMAGE.to_bytes(2, "big")])
 
 
 if __name__ == "__main__":

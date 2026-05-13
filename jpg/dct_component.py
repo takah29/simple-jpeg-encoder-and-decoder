@@ -2,7 +2,7 @@ from typing import Self
 
 import numpy as np
 
-from jpg.helper import zigzag_scan
+from jpg.helper import JpegBitWriter, zigzag_scan
 from jpg.huffman_table import HuffmanTable
 from jpg.quantization_table import QuantizationTable
 
@@ -287,6 +287,20 @@ class DctComponent:
         for row_mcu in self.quantized_dct_blocks:
             for mcu in row_mcu:
                 yield self._encode_mcu(mcu)
+
+
+def to_entropy_coded_segment(
+    dct_component_list: list[DctComponent],
+) -> bytes:
+    bit_writer = JpegBitWriter()
+
+    for mcu_bits_list in zip(*[x.mcu_encoder() for x in dct_component_list]):
+        for mcu_bits in mcu_bits_list:
+            bit_writer.write_bits(*mcu_bits)
+
+    bit_writer.finalize()
+
+    return bytes(bit_writer.output)
 
 
 if __name__ == "__main__":
