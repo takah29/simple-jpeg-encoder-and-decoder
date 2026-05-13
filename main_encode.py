@@ -5,7 +5,7 @@ import matplotlib
 import numpy as np
 from PIL import Image
 
-from encoder import jpg_encode
+from jpg.encoder import jpg_encode
 
 matplotlib.use("QtAgg")
 
@@ -40,10 +40,10 @@ def main():
             return
 
     img = Image.open(img_path)
-    img = np.array(img).astype(np.int32)
+    img = np.array(img)
 
     if img.ndim == 3:
-        sampling_setting = SAMPLING_SETTINGS["4:2:0"]
+        sampling_setting = SAMPLING_SETTINGS["4:4:4"]
     elif img.ndim == 2:
         sampling_setting = SAMPLING_SETTINGS["grayscale"]
     else:
