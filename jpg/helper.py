@@ -89,17 +89,17 @@ def padding(img: np.ndarray, pad_w: int, pad_h: int) -> np.ndarray:
 
 def get_category(value: int | np.integer) -> int:
     """
-    >>> _get_category(0)
+    >>> get_category(0)
     0
-    >>> _get_category(1)
+    >>> get_category(1)
     1
-    >>> _get_category(-1)
+    >>> get_category(-1)
     1
-    >>> _get_category(-7)
+    >>> get_category(-7)
     3
-    >>> _get_category(8)
+    >>> get_category(8)
     4
-    >>> _get_category(-2047)
+    >>> get_category(-2047)
     11
     """
 
@@ -108,22 +108,22 @@ def get_category(value: int | np.integer) -> int:
 
 def get_encval_and_category(value: int) -> tuple[int, int]:
     """
-    >>> val, _ = _get_encval_and_category(0)
+    >>> val, _ = get_encval_and_category(0)
     >>> f'{bin(val)}'
     '0b0'
-    >>> val, _ = _get_encval_and_category(0b1)
+    >>> val, _ = get_encval_and_category(0b1)
     >>> f'{bin(val)}'
     '0b1'
-    >>> val, _ = _get_encval_and_category(-0b1)
+    >>> val, _ = get_encval_and_category(-0b1)
     >>> f'{bin(val)}'
     '0b0'
-    >>> val, _ = _get_encval_and_category(-0b111)
+    >>> val, _ = get_encval_and_category(-0b111)
     >>> f'{bin(val)}'
     '0b0'
-    >>> val, _ = _get_encval_and_category(0b1000)
+    >>> val, _ = get_encval_and_category(0b1000)
     >>> f'{bin(val)}'
     '0b1000'
-    >>> val, _ = _get_encval_and_category(-0b11111111111)
+    >>> val, _ = get_encval_and_category(-0b11111111111)
     >>> f'{bin(val)}'
     '0b0'
     """
@@ -154,31 +154,31 @@ def encode_runlength(ac_coeffs: np.ndarray) -> list[tuple[int, int, int]]:
     """
     return [(runlength, category, value), ...]
 
-    >>> _encode_runlength([0] * 63)
+    >>> encode_runlength([0] * 63)
     [(0, 0, 0)]
 
     >>> xs1 = [0, 1, 1, 1, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0]
-    >>> _encode_runlength(xs1)
+    >>> encode_runlength(xs1)
     [(1, 1, 1), (0, 1, 1), (0, 1, 1), (3, 2, 3), (15, 0, 0), (1, 1, 1), (0, 0, 0)]
 
     >>> xs2 = [0, 1, 1, 1, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 8]
-    >>> _encode_runlength(xs2)
+    >>> encode_runlength(xs2)
     [(1, 1, 1), (0, 1, 1), (0, 1, 1), (3, 2, 3), (15, 0, 0), (1, 1, 1), (3, 4, 8)]
 
     >>> xs3 = [0] * 29 + [8]
-    >>> _encode_runlength(xs3)
+    >>> encode_runlength(xs3)
     [(15, 0, 0), (13, 4, 8)]
 
     >>> xs4 = [0] * 28 + [8, 0]
-    >>> _encode_runlength(xs4)
+    >>> encode_runlength(xs4)
     [(15, 0, 0), (12, 4, 8), (0, 0, 0)]
 
     >>> xs5 = [1] + [0] * 29
-    >>> _encode_runlength(xs5)
+    >>> encode_runlength(xs5)
     [(0, 1, 1), (0, 0, 0)]
 
     >>> xs5 = [1] + [0] * 16
-    >>> _encode_runlength(xs5)
+    >>> encode_runlength(xs5)
     [(0, 1, 1), (0, 0, 0)]
 
     """
