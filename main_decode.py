@@ -1,3 +1,4 @@
+import argparse
 from pathlib import Path
 
 import matplotlib
@@ -10,8 +11,12 @@ matplotlib.use("QtAgg")
 
 
 def main():
-    jpg_path = Path("compressed.jpg")
-    with jpg_path.open("rb") as f:
+    parser = argparse.ArgumentParser(description="Jpeg Decoder")
+    parser.add_argument("input_file", help="Input JPEG file", type=Path)
+
+    args = parser.parse_args()
+
+    with args.input_file.open("rb") as f:
         jpg_bytes = f.read()
 
     img = jpg_decode(jpg_bytes)

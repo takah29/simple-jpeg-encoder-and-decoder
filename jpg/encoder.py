@@ -13,10 +13,10 @@ from jpg.core.start_of_scan import StartOfScan
 
 def jpg_encode(
     img: np.ndarray,
-    mcu_size_hw_list: list[tuple[int, int]],
+    subsampling_type: str,
     quality: int,
 ) -> bytes:
-    frame_information = FrameInformation.create(img.shape, mcu_size_hw_list)
+    frame_information = FrameInformation.create(img.shape, subsampling_type)
     start_of_scan = StartOfScan.create(img.shape)
 
     q_table_y = QuantizationTable.create(0, 0, True, quality)
@@ -28,6 +28,7 @@ def jpg_encode(
     uvac_ht = HuffmanTable.from_file(Path("./huffman_code/uvac_hc.csv"), 1, 1)
 
     img = img.astype(np.float64)
+    mcu_size_hw_list = frame_information.get_mcu_size_hw_list()
     sample_step_hw_list = frame_information.get_sample_step_hw_list()
     if img.ndim == 3:
         # RGB

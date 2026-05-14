@@ -2,6 +2,13 @@ from dataclasses import dataclass
 from math import ceil
 from typing import Self
 
+MCU_SIZE_HW_SETTINGS = {
+    "4:2:0": [(2, 2), (1, 1), (1, 1)],
+    "4:2:2": [(1, 2), (1, 1), (1, 1)],
+    "4:4:4": [(1, 1), (1, 1), (1, 1)],
+    "grayscale": [(1, 1)],
+}
+
 
 @dataclass
 class SamplingInfo:
@@ -41,7 +48,7 @@ class FrameInformation:
     sampling_info_list: list[SamplingInfo]
 
     @classmethod
-    def create(cls, image_shape: tuple[int, ...], mcu_size_hw_list: list[tuple[int, int]]) -> Self:
+    def create(cls, image_shape: tuple[int, ...], sampling_ratio: str) -> Self:
         sample_precision = 8
         if len(image_shape) == 3:
             image_height, image_width, num_components = image_shape
@@ -52,6 +59,7 @@ class FrameInformation:
             msg = f"Invalid image shape: {image_shape}. Expected GrayScale or RGB image."
             raise ValueError(msg)
 
+        mcu_size_hw_list = MCU_SIZE_HW_SETTINGS[sampling_ratio]
         sampling_info_list = [
             SamplingInfo(i, mcu_w, mcu_h, q_id)
             for i, ((mcu_h, mcu_w), q_id) in enumerate(

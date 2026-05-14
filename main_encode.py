@@ -1,4 +1,4 @@
-import subprocess
+import argparse
 from pathlib import Path
 
 import matplotlib
@@ -9,36 +9,26 @@ from jpg.encoder import jpg_encode
 
 matplotlib.use("QtAgg")
 
-MCU_SIZE_HW_SETTINGS = {
-    "4:2:0": [(2, 2), (1, 1), (1, 1)],
-    "4:2:2": [(1, 2), (1, 1), (1, 1)],
-    "4:4:4": [(1, 1), (1, 1), (1, 1)],
-    "grayscale": [(1, 1)],
-}
-
 
 def main():
-    img_path = Path("earthmap.jpg")
-    if not img_path.exists():
-        print("Image not found. Downloading...")
-        try:
-            subprocess.run(["wget", "https://raytracing.github.io/images/earthmap.jpg"])
-        except Exception:
-            print("Failed to download the image.")
-            return
+    parser = argparse.ArgumentParser(description="Jpeg Encoder")
+    parser.add_argument("input_file", help="Input image file", type=Path)
+    parser.add_argument(
+        "--subsampling_ratio",
+        "-s",
+        help="Chroma subsampling ratio",
+        choices=["4:4:4", "4:2:2", "4:2:0"],
+        type=str,
+        default="4:2:0",
+    )
 
-    img = Image.open(img_path)
+    args = parser.parse_args()
+
+    img = Image.open(args.input_file)
     img = np.array(img)
 
-    if img.ndim == 3:
-        mcu_size_hw_list = MCU_SIZE_HW_SETTINGS["4:2:0"]
-    elif img.ndim == 2:
-        mcu_size_hw_list = MCU_SIZE_HW_SETTINGS["grayscale"]
-    else:
-        msg = f"Invalid image shape: {img.shape}. Expected GrayScale(ndim=2) or RGB(ndim=3) image."
-        raise ValueError(msg)
-
-    jpg_bytes = jpg_encode(img, mcu_size_hw_list, quality=50)
+    subsampling_type = args.subsampling_ratio if img.ndim == 3 else "grayscale"
+    jpg_bytes = jpg_encode(img, subsampling_type, quality=50)
 
     with open("compressed.jpg", "wb") as f:
         f.write(jpg_bytes)
