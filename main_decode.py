@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import matplotlib
+from matplotlib import pyplot as plt
 from PIL import Image
 
 from jpg.decoder import jpg_decode
@@ -16,7 +17,8 @@ def main():
     img = jpg_decode(jpg_bytes)
     img = Image.fromarray(img)
 
-    img.show()
+    plt.imshow(img)
+    plt.show()
 
 
 if __name__ == "__main__":
