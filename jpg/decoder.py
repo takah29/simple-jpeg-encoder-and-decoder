@@ -33,20 +33,24 @@ def jpg_decode(jpg_bytes: bytes) -> np.ndarray:
             quantization_table = QuantizationTable.from_bytes(segment)
             quantization_tables[quantization_table.table_id] = quantization_table
             current_idx += len(segment)
+
         elif FrameInformation.MARKER.to_bytes(2, "big") == jpg_bytes[current_idx : current_idx + 2]:
             segment = _get_segment(jpg_bytes, current_idx)
             frame_information = FrameInformation.from_bytes(segment)
             current_idx += len(segment)
+
         elif HuffmanTable.MARKER.to_bytes(2, "big") == jpg_bytes[current_idx : current_idx + 2]:
             segment = _get_segment(jpg_bytes, current_idx)
             huffman_table = HuffmanTable.from_bytes(segment)
             huffman_tables[(huffman_table.table_class, huffman_table.table_id)] = huffman_table
             current_idx += len(segment)
+
         elif StartOfScan.MARKER.to_bytes(2, "big") == jpg_bytes[current_idx : current_idx + 2]:
             segment = _get_segment(jpg_bytes, current_idx)
             start_of_scan = StartOfScan.from_bytes(segment)
             current_idx += len(segment)
             break
+
         else:
             raise ValueError("Invalid JPEG file. Invalid marker.")
 
@@ -63,7 +67,7 @@ def jpg_decode(jpg_bytes: bytes) -> np.ndarray:
         huffman_tables,
     )
     img_shape = (frame_information.image_height, frame_information.image_width)
-    image_list = [
+    img_comp_list = [
         component.to_image_component(
             img_shape,
             sample_step_hw,
@@ -76,10 +80,10 @@ def jpg_decode(jpg_bytes: bytes) -> np.ndarray:
         )
     ]
 
-    if len(image_list) == 1:
-        return image_list[0] + 128
-    elif len(image_list) == 3:
-        img = np.stack(image_list, axis=2)
+    if len(img_comp_list) == 1:
+        return img_comp_list[0] + 128
+    elif len(img_comp_list) == 3:
+        img = np.stack(img_comp_list, axis=2)
         img[:, :, 0] += 128
         return np.clip(to_rgb(img), 0, 255).astype(np.uint8)
     else:

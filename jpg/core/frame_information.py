@@ -136,8 +136,7 @@ class FrameInformation:
 
 if __name__ == "__main__":
     img_shape = (256, 512, 3)
-    mcu_size_hw_list = [(1, 2), (1, 1), (1, 1)]
-    frame_info = FrameInformation.create(img_shape, mcu_size_hw_list)
+    frame_info = FrameInformation.create(img_shape, "4:2:0")
     print(frame_info)
 
     frame_info_bytes = frame_info.to_bytes()
