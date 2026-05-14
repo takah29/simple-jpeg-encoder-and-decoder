@@ -21,6 +21,13 @@ def main():
         type=str,
         default="4:2:0",
     )
+    parser.add_argument(
+        "--output_file",
+        "-o",
+        help="Output JPEG file",
+        type=Path,
+        default=Path("compressed.jpg"),
+    )
 
     args = parser.parse_args()
 
@@ -30,7 +37,7 @@ def main():
     subsampling_type = args.subsampling_ratio if img.ndim == 3 else "grayscale"
     jpg_bytes = jpg_encode(img, subsampling_type, quality=50)
 
-    with open("compressed.jpg", "wb") as f:
+    with args.output_file.open("wb") as f:
         f.write(jpg_bytes)
 
 
