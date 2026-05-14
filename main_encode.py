@@ -31,7 +31,7 @@ def main():
     img = np.array(img)
 
     if img.ndim == 3:
-        mcu_size_hw_list = MCU_SIZE_HW_SETTINGS["4:4:4"]
+        mcu_size_hw_list = MCU_SIZE_HW_SETTINGS["4:2:0"]
     elif img.ndim == 2:
         mcu_size_hw_list = MCU_SIZE_HW_SETTINGS["grayscale"]
     else:
