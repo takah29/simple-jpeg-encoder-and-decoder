@@ -2,11 +2,12 @@ from pathlib import Path
 
 import numpy as np
 
-from jpg.dct_component import DctComponent, to_entropy_coded_segment
+from jpg.entropy_coded_segment import to_entropy_coded_segment
 from jpg.frame_information import FrameInformation
 from jpg.helper import END_OF_IMAGE, START_OF_IMAGE, to_ycbcr
 from jpg.huffman_table import HuffmanTable
 from jpg.quantization_table import QuantizationTable
+from jpg.quantized_blocks import QuantizedBlocks
 from jpg.start_of_scan import StartOfScan
 
 
@@ -31,32 +32,30 @@ def jpg_encode(
     if img.ndim == 3:
         # RGB
         img_ycbcr = to_ycbcr(img) + np.array([-128, 0, 0])
-        components = [
-            DctComponent.create(
-                img_ycbcr[:, :, 0],
-                q_table_y,
-                ydc_ht,
-                yac_ht,
-                mcu_size_hw_list[0],
-                sample_step_hw_list[0],
-            ),
-            DctComponent.create(
-                img_ycbcr[:, :, 1],
-                q_table_c,
-                uvdc_ht,
-                uvac_ht,
-                mcu_size_hw_list[1],
-                sample_step_hw_list[1],
-            ),
-            DctComponent.create(
-                img_ycbcr[:, :, 2],
-                q_table_c,
-                uvdc_ht,
-                uvac_ht,
-                mcu_size_hw_list[2],
-                sample_step_hw_list[2],
-            ),
-        ]
+
+        q_tables = [q_table_y, q_table_c, q_table_c]
+        dc_huffman_tables = [ydc_ht, uvdc_ht, uvdc_ht]
+        ac_huffman_tables = [yac_ht, uvac_ht, uvac_ht]
+
+        components = []
+        component_huffman_tables = []
+        for img_comp, mcu_size_hw, sample_step_hw, q_table, dc_ht, ac_ht in zip(
+            img_ycbcr.transpose(2, 0, 1),
+            mcu_size_hw_list,
+            sample_step_hw_list,
+            q_tables,
+            dc_huffman_tables,
+            ac_huffman_tables,
+        ):
+            components.append(
+                QuantizedBlocks.from_image_component(img_comp, q_table, mcu_size_hw, sample_step_hw)
+            )
+            component_huffman_tables.append(
+                {
+                    "dc_huffman_table": dc_ht,
+                    "ac_huffman_table": ac_ht,
+                }
+            )
 
         headers = [
             START_OF_IMAGE.to_bytes(2, "big"),
@@ -73,9 +72,15 @@ def jpg_encode(
         # Grayscale
         img_gray = img - 128.0
         components = [
-            DctComponent.create(
-                img_gray, q_table_y, ydc_ht, yac_ht, mcu_size_hw_list[0], sample_step_hw_list[0]
+            QuantizedBlocks.from_image_component(
+                img_gray, q_table_y, mcu_size_hw_list[0], sample_step_hw_list[0]
             )
+        ]
+        component_huffman_tables = [
+            {
+                "dc_huffman_table": ydc_ht,
+                "ac_huffman_table": yac_ht,
+            }
         ]
 
         headers = [
@@ -87,7 +92,7 @@ def jpg_encode(
             start_of_scan.to_bytes(),
         ]
 
-    entropy_coded_segment = to_entropy_coded_segment(components)
+    entropy_coded_segment = to_entropy_coded_segment(components, component_huffman_tables)
 
     return b"".join(headers + [entropy_coded_segment, END_OF_IMAGE.to_bytes(2, "big")])
 
