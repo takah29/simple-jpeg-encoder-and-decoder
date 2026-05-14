@@ -3,16 +3,26 @@ import numpy as np
 START_OF_IMAGE = 0xFFD8
 END_OF_IMAGE = 0xFFD9
 
-ZIGZAG_ORDER = [
-    0,  1,  8, 16,  9,  2,  3, 10,
-    17, 24, 32, 25, 18, 11,  4,  5,
-    12, 19, 26, 33, 40, 48, 41, 34,
-    27, 20, 13,  6,  7, 14, 21, 28,
-    35, 42, 49, 56, 57, 50, 43, 36,
-    29, 22, 15, 23, 30, 37, 44, 51,
-    58, 59, 52, 45, 38, 31, 39, 46,
-    53, 60, 61, 54, 47, 55, 62, 63
-]  # fmt: skip
+ZIGZAG_ORDER = np.array(
+    [
+        0,  1,  8, 16,  9,  2,  3, 10,
+        17, 24, 32, 25, 18, 11,  4,  5,
+        12, 19, 26, 33, 40, 48, 41, 34,
+        27, 20, 13,  6,  7, 14, 21, 28,
+        35, 42, 49, 56, 57, 50, 43, 36,
+        29, 22, 15, 23, 30, 37, 44, 51,
+        58, 59, 52, 45, 38, 31, 39, 46,
+        53, 60, 61, 54, 47, 55, 62, 63
+    ]
+)  # fmt: skip
+
+YCBCR_MAT = np.array(
+    [
+        [0.299, 0.587, 0.114],
+        [-0.168736, -0.331264, 0.5],
+        [0.5, -0.418688, -0.081312],
+    ]
+)
 
 
 def zigzag_scan(arr8x8: np.ndarray) -> np.ndarray:
@@ -34,14 +44,15 @@ def to_ycbcr(img: np.ndarray) -> np.ndarray:
         msg = f"Invalid image shape: {img.shape}. Expected RGB image."
         raise ValueError(msg)
 
-    to_ycbcr = np.array(
-        [
-            [0.299, 0.587, 0.114],
-            [-0.168736, -0.331264, 0.5],
-            [0.5, -0.418688, -0.081312],
-        ]
-    )
-    return (to_ycbcr @ img[..., None]).squeeze()
+    return (YCBCR_MAT @ img[..., None]).squeeze()
+
+
+def to_rgb(img: np.ndarray) -> np.ndarray:
+    if img.ndim != 3:
+        msg = f"Invalid image shape: {img.shape}. Expected YCbCr image."
+        raise ValueError(msg)
+
+    return (np.linalg.inv(YCBCR_MAT) @ img[..., None]).squeeze()
 
 
 def dct_matrix(n: int = 8) -> np.ndarray:
@@ -127,6 +138,16 @@ def get_encval_and_category(value: int) -> tuple[int, int]:
         enc_val = value
 
     return enc_val, cat
+
+
+def decode_encval(enc_val: int, cat: int) -> int:
+    if cat == 0:
+        return 0
+
+    if enc_val & (1 << (cat - 1)):
+        return enc_val
+    else:
+        return enc_val - ((1 << cat) - 1)
 
 
 def encode_runlength(ac_coeffs: np.ndarray) -> list[tuple[int, int, int]]:

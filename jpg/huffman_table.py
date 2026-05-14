@@ -3,6 +3,22 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Self
 
+import numpy as np
+
+
+@dataclass
+class LookupTable:
+    symbols: list[int]
+    min_codes: dict[int, int]
+    max_codes: dict[int, int]
+    code_len_start_indices: np.ndarray
+
+    def get_symbol(self, current_code: int, current_code_len: int) -> int:
+        idx = self.code_len_start_indices[current_code_len] + (
+            current_code - self.min_codes[current_code_len]
+        )
+        return self.symbols[idx]
+
 
 @dataclass
 class HuffmanTable:
@@ -85,6 +101,31 @@ class HuffmanTable:
             code_word <<= 1
 
         return cls(table_class, table_id, huffman_table)
+
+    def get_lookup_table(self) -> LookupTable:
+        sorted_items = sorted(self.table.items(), key=lambda x: (x[1][1], x[1][0]))
+
+        symbols = []
+        min_codes = {}
+        max_codes = {}
+        code_len_start_indices = [0] * 17
+
+        for symbol, val in sorted_items:
+            symbols.append(symbol)
+            code_word, code_len = val
+
+            if code_len not in min_codes:
+                min_codes[code_len] = code_word
+
+            max_codes[code_len] = code_word
+            code_len_start_indices[code_len] += 1
+
+        return LookupTable(
+            symbols=symbols,
+            min_codes=min_codes,
+            max_codes=max_codes,
+            code_len_start_indices=np.cumsum([0] + code_len_start_indices),
+        )
 
 
 if __name__ == "__main__":

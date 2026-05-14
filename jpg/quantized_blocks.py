@@ -7,6 +7,7 @@ from jpg.helper import (
     dct_matrix,
     encode_runlength,
     get_encval_and_category,
+    idct,
     padding,
     zigzag_scan,
 )
@@ -19,10 +20,22 @@ class QuantizedBlocks:
         self,
         quantized_blocks: np.ndarray,
     ) -> None:
+        if quantized_blocks.ndim != 6:
+            msg = f"Invalid quantized block shape: {quantized_blocks.shape}. Expected dimension 6."
+            raise ValueError(msg)
 
         self.quantized_blocks = quantized_blocks
 
         self._last_dc = 0
+
+    @classmethod
+    def create(cls, mcu_list: list[np.ndarray], mcu_num_hw: tuple[int, int]) -> Self:
+        if mcu_list[0].ndim != 4:
+            msg = f"Invalid mcu shape: {mcu_list[0].shape}. Expected dimension 4."
+            raise ValueError(msg)
+
+        mcu_h, mcu_w = mcu_list[0].shape[:2]
+        return cls(np.stack(mcu_list).reshape(*mcu_num_hw, mcu_h, mcu_w, 8, 8))
 
     @classmethod
     def from_image_component(
@@ -67,6 +80,17 @@ class QuantizedBlocks:
         return img
 
     @staticmethod
+    def _chroma_upsampling(
+        img: np.ndarray, sample_step_hw: tuple[int, int], method="nearest"
+    ) -> np.ndarray:
+        if method == "nearest":
+            upsampled = np.kron(img, np.ones(sample_step_hw))
+        else:
+            raise ValueError("Unsupported upsampling method")
+
+        return upsampled
+
+    @staticmethod
     def _block_split(img: np.ndarray, mcu_size_hw: tuple[int, int]) -> np.ndarray:
         n = 8
         mcu_h, mcu_w = mcu_size_hw
@@ -75,6 +99,12 @@ class QuantizedBlocks:
         ).transpose(0, 3, 1, 4, 2, 5)  # (n_mcu_h, n_mcu_w, mcu_h, mcu_w, n, n)
 
         return img
+
+    def _merge_block(self, blocks: np.ndarray) -> np.ndarray:
+        padded_shape = self.quantized_blocks.shape
+        padded_img_h = padded_shape[0] * padded_shape[2] * 8
+        padded_img_w = padded_shape[1] * padded_shape[3] * 8
+        return blocks.transpose(0, 2, 4, 1, 3, 5).reshape(padded_img_h, padded_img_w)
 
     @staticmethod
     def _push_bits(block_code, length, code_word, code_len) -> tuple[int, int]:
@@ -125,8 +155,19 @@ class QuantizedBlocks:
             for mcu in row_mcu:
                 yield self._encode_mcu(mcu, dc_huffman_table, ac_huffman_table)
 
-    def to_image_component(self, quantization_table: QuantizationTable) -> np.ndarray:
-        pass
+    def to_image_component(
+        self,
+        img_shape: tuple[int, int],
+        sample_step_hw: tuple[int, int],
+        quantization_table: QuantizationTable,
+    ) -> np.ndarray:
+        dct_blocks = self.quantized_blocks * quantization_table.values
+        dct_mat = dct_matrix()
+        blocks = idct(dct_blocks, dct_mat)
+        img = self._merge_block(blocks)
+        img = self._chroma_upsampling(img, sample_step_hw)
+
+        return img[: img_shape[0], : img_shape[1]]
 
 
 if __name__ == "__main__":

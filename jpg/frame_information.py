@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from math import ceil
 from typing import Self
 
 
@@ -114,6 +115,15 @@ class FrameInformation:
             (h_max // si.height_sampling_factor, w_max // si.width_sampling_factor)
             for si in self.sampling_info_list
         ]
+
+    def get_mcu_size_hw_list(self) -> list[tuple[int, int]]:
+        return [
+            (si.height_sampling_factor, si.width_sampling_factor) for si in self.sampling_info_list
+        ]
+
+    def get_mcu_num_hw(self) -> tuple[int, int]:
+        mcu_h, mcu_w = self.get_mcu_size_hw_list()[0]
+        return (ceil(self.image_height / (mcu_h * 8)), ceil(self.image_width / (mcu_w * 8)))
 
 
 if __name__ == "__main__":
