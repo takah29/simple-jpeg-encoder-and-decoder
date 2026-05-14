@@ -2,7 +2,7 @@ from typing import Self
 
 import numpy as np
 
-from jpg.helper import (
+from jpg.core.helper import (
     dct,
     dct_matrix,
     encode_runlength,
@@ -11,8 +11,8 @@ from jpg.helper import (
     padding,
     zigzag_scan,
 )
-from jpg.huffman_table import HuffmanTable
-from jpg.quantization_table import QuantizationTable
+from jpg.core.huffman_table import HuffmanTable
+from jpg.core.quantization_table import QuantizationTable
 
 
 class QuantizedBlocks:

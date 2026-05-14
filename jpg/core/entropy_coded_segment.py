@@ -2,11 +2,11 @@ from collections.abc import Iterator
 
 import numpy as np
 
-from jpg.frame_information import FrameInformation
-from jpg.helper import JpegBitWriter, decode_encval, zigzag_scan_inv
-from jpg.huffman_table import HuffmanTable, LookupTable
-from jpg.quantized_blocks import QuantizedBlocks
-from jpg.start_of_scan import StartOfScan
+from jpg.core.frame_information import FrameInformation
+from jpg.core.helper import JpegBitWriter, decode_encval, zigzag_scan_inv
+from jpg.core.huffman_table import HuffmanTable, LookupTable
+from jpg.core.quantized_blocks import QuantizedBlocks
+from jpg.core.start_of_scan import StartOfScan
 
 
 def to_entropy_coded_segment(
@@ -91,7 +91,7 @@ def _read_jpeg_mcu_data(
 
         return zigzag_scan_inv(block_buffer), dc_val
 
-    # [(mcu_num_h, mcu_num_w, mcu_size_h, mcu_size_w, 8, 8),...]のテンソルのリストを作る
+    # [(mcu_size_h, mcu_size_w, 8, 8),...]のテンソルのリストを作る
     n_components = len(component_lookup_tables)
     component_mcu_list = [[] for i in range(n_components)]
     dc_bases = [0] * n_components

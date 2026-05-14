@@ -3,7 +3,7 @@ from typing import Self
 
 import numpy as np
 
-from jpg.helper import zigzag_scan, zigzag_scan_inv
+from jpg.core.helper import zigzag_scan, zigzag_scan_inv
 
 QY_BASE = [
     [16, 11, 10, 16, 24, 40, 51, 61],

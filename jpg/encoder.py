@@ -2,13 +2,13 @@ from pathlib import Path
 
 import numpy as np
 
-from jpg.entropy_coded_segment import to_entropy_coded_segment
-from jpg.frame_information import FrameInformation
-from jpg.helper import END_OF_IMAGE, START_OF_IMAGE, to_ycbcr
-from jpg.huffman_table import HuffmanTable
-from jpg.quantization_table import QuantizationTable
-from jpg.quantized_blocks import QuantizedBlocks
-from jpg.start_of_scan import StartOfScan
+from jpg.core.entropy_coded_segment import to_entropy_coded_segment
+from jpg.core.frame_information import FrameInformation
+from jpg.core.helper import END_OF_IMAGE, START_OF_IMAGE, to_ycbcr
+from jpg.core.huffman_table import HuffmanTable
+from jpg.core.quantization_table import QuantizationTable
+from jpg.core.quantized_blocks import QuantizedBlocks
+from jpg.core.start_of_scan import StartOfScan
 
 
 def jpg_encode(

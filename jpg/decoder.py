@@ -1,11 +1,11 @@
 import numpy as np
 
-from jpg.entropy_coded_segment import from_entropy_coded_segment
-from jpg.frame_information import FrameInformation
-from jpg.helper import END_OF_IMAGE, START_OF_IMAGE, to_rgb
-from jpg.huffman_table import HuffmanTable
-from jpg.quantization_table import QuantizationTable
-from jpg.start_of_scan import StartOfScan
+from jpg.core.entropy_coded_segment import from_entropy_coded_segment
+from jpg.core.frame_information import FrameInformation
+from jpg.core.helper import END_OF_IMAGE, START_OF_IMAGE, to_rgb
+from jpg.core.huffman_table import HuffmanTable
+from jpg.core.quantization_table import QuantizationTable
+from jpg.core.start_of_scan import StartOfScan
 
 
 def _get_segment(data: bytes, current_idx: int) -> bytes:
