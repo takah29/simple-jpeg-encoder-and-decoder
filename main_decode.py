@@ -14,9 +14,6 @@ def main():
         jpg_bytes = f.read()
 
     img = jpg_decode(jpg_bytes)
-
-    print(img.shape, img.dtype)
-    print(img)
     img = Image.fromarray(img)
 
     img.show()

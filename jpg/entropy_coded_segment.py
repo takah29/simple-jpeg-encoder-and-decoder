@@ -77,7 +77,6 @@ def _read_jpeg_mcu_data(
             symbol = decode_symbol(ac_lookup_table)
             runlen = symbol >> 4
             cat = symbol & 0x0F
-            # print(f"ptr: {block_ptr}, run: {runlen}, cat: {cat}")
 
             if runlen == 0 and cat == 0:
                 break

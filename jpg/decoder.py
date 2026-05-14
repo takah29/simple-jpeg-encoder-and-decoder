@@ -72,18 +72,13 @@ def jpg_decode(jpg_bytes: bytes) -> np.ndarray:
         msg = "Invalid JPEG file. Frame information not found."
         raise ValueError(msg)
 
-    # print("Start of Scan: ", start_of_scan)
-    print("Frame Information: ", frame_information)
-    # print("Quantization Table: ", quantization_tables)
-    # print("Huffman Table: ", huffman_tables)
-
     # decoding
     end_of_image_idx = jpg_bytes.find(END_OF_IMAGE.to_bytes(2, "big"))
     components = from_entropy_coded_segment(
         jpg_bytes[current_idx:end_of_image_idx],
-        frame_information,  # pyrefly: ignore [bad-argument-type]
+        frame_information,
         start_of_scan,
-        huffman_tables,  # pyrefly: ignore [bad-argument-type]
+        huffman_tables,
     )
     img_shape = (frame_information.image_height, frame_information.image_width)
     image_list = [
@@ -106,4 +101,4 @@ def jpg_decode(jpg_bytes: bytes) -> np.ndarray:
         img[:, :, 0] += 128
         return np.clip(to_rgb(img), 0, 255).astype(np.uint8)
     else:
-        raise ValueError("Invalid JPEG file. Invalid number of components.")
+        raise ValueError("Invalid number of components.")
