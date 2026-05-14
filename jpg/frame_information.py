@@ -103,6 +103,18 @@ class FrameInformation:
 
         return cls(sample_precision, image_height, image_width, num_components, sampling_info_list)
 
+    def get_sample_step_hw_list(self) -> list[tuple[int, int]]:
+        h_max = 0
+        w_max = 0
+        for sampling_info in self.sampling_info_list:
+            h_max = max(h_max, sampling_info.height_sampling_factor)
+            w_max = max(w_max, sampling_info.width_sampling_factor)
+
+        return [
+            (h_max // si.height_sampling_factor, w_max // si.width_sampling_factor)
+            for si in self.sampling_info_list
+        ]
+
 
 if __name__ == "__main__":
     img_shape = (256, 512, 3)

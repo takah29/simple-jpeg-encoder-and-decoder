@@ -9,23 +9,11 @@ from jpg.encoder import jpg_encode
 
 matplotlib.use("QtAgg")
 
-SAMPLING_SETTINGS = {
-    "4:2:0": {
-        "mcu_size_hw_list": [(2, 2), (1, 1), (1, 1)],
-        "sample_step_hw_list": [(1, 1), (2, 2), (2, 2)],
-    },
-    "4:2:2": {
-        "mcu_size_hw_list": [(1, 2), (1, 1), (1, 1)],
-        "sample_step_hw_list": [(1, 1), (1, 2), (1, 2)],
-    },
-    "4:4:4": {
-        "mcu_size_hw_list": [(1, 1), (1, 1), (1, 1)],
-        "sample_step_hw_list": [(1, 1), (1, 1), (1, 1)],
-    },
-    "grayscale": {
-        "mcu_size_hw_list": [(1, 1)],
-        "sample_step_hw_list": [(1, 1)],
-    },
+MCU_SIZE_HW_SETTINGS = {
+    "4:2:0": [(2, 2), (1, 1), (1, 1)],
+    "4:2:2": [(1, 2), (1, 1), (1, 1)],
+    "4:4:4": [(1, 1), (1, 1), (1, 1)],
+    "grayscale": [(1, 1)],
 }
 
 
@@ -43,14 +31,14 @@ def main():
     img = np.array(img)
 
     if img.ndim == 3:
-        sampling_setting = SAMPLING_SETTINGS["4:4:4"]
+        mcu_size_hw_list = MCU_SIZE_HW_SETTINGS["4:4:4"]
     elif img.ndim == 2:
-        sampling_setting = SAMPLING_SETTINGS["grayscale"]
+        mcu_size_hw_list = MCU_SIZE_HW_SETTINGS["grayscale"]
     else:
         msg = f"Invalid image shape: {img.shape}. Expected GrayScale(ndim=2) or RGB(ndim=3) image."
         raise ValueError(msg)
 
-    jpg_bytes = jpg_encode(img, **sampling_setting, quality=50)
+    jpg_bytes = jpg_encode(img, mcu_size_hw_list, quality=50)
 
     with open("compressed.jpg", "wb") as f:
         f.write(jpg_bytes)
