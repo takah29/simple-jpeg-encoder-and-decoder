@@ -1,13 +1,13 @@
 from pathlib import Path
 
 import numpy as np
-from jpg.core.start_of_frame import StartOfFrame
 
 from jpg.core.entropy_coded_segment import to_entropy_coded_segment
 from jpg.core.helper import END_OF_IMAGE, START_OF_IMAGE, to_ycbcr
 from jpg.core.huffman_table import HuffmanTable
 from jpg.core.quantization_table import QuantizationTable
 from jpg.core.quantized_blocks import QuantizedBlocks
+from jpg.core.start_of_frame import StartOfFrame
 from jpg.core.start_of_scan import StartOfScan
 
 
@@ -22,17 +22,18 @@ def jpg_encode(
     q_table_y = QuantizationTable.create(0, 0, True, quality)
     q_table_c = QuantizationTable.create(0, 1, False, quality)
 
-    ydc_ht = HuffmanTable.from_file(Path("./huffman_code/ydc_hc.csv"), 0, 0)
-    yac_ht = HuffmanTable.from_file(Path("./huffman_code/yac_hc.csv"), 1, 0)
-    uvdc_ht = HuffmanTable.from_file(Path("./huffman_code/uvdc_hc.csv"), 0, 1)
-    uvac_ht = HuffmanTable.from_file(Path("./huffman_code/uvac_hc.csv"), 1, 1)
+    huffman_code_dir = Path(__file__).parents[1] / "huffman_code"
+    ydc_ht = HuffmanTable.from_file(huffman_code_dir / "ydc_hc.csv", 0, 0)
+    yac_ht = HuffmanTable.from_file(huffman_code_dir / "yac_hc.csv", 1, 0)
+    uvdc_ht = HuffmanTable.from_file(huffman_code_dir / "uvdc_hc.csv", 0, 1)
+    uvac_ht = HuffmanTable.from_file(huffman_code_dir / "uvac_hc.csv", 1, 1)
 
     img = img.astype(np.float64)
     mcu_size_hw_list = start_of_frame.get_mcu_size_hw_list()
     sample_step_hw_list = start_of_frame.get_sample_step_hw_list()
     if img.ndim == 3:
         # RGB
-        img_ycbcr = to_ycbcr(img) + np.array([-128, 0, 0])
+        img_ycbcr = to_ycbcr(img) - np.array([128, 0, 0])
 
         q_tables = [q_table_y, q_table_c, q_table_c]
         dc_huffman_tables = [ydc_ht, uvdc_ht, uvdc_ht]
