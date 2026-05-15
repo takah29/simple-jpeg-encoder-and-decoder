@@ -107,7 +107,8 @@ def _read_jpeg_mcu_data(
                         component_lookup_tables[i]["ac_lookup_table"],
                     )
                 except StopIteration:
-                    return component_mcu_list
+                    block_data = np.zeros((8, 8))
+                    dc_bases[i] = 0
 
                 mcu_blocks.append(block_data)
 

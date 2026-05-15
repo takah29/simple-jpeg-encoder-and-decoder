@@ -64,6 +64,10 @@ def jpg_decode(jpg_bytes: bytes) -> np.ndarray:
                 current_idx += len(segment)
                 break
 
+            case 0xFFDD:
+                msg = "Unsupported DRI(0xFFDD) marker."
+                raise ValueError(msg)
+
             case _:
                 segment = _get_segment(jpg_bytes, current_idx)
                 current_idx += len(segment)
