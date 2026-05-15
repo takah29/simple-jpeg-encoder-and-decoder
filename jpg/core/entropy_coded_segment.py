@@ -1,8 +1,8 @@
 from collections.abc import Iterator
 
 import numpy as np
+from jpg.core.start_of_frame import StartOfFrame
 
-from jpg.core.frame_information import FrameInformation
 from jpg.core.helper import JpegBitWriter, decode_encval, zigzag_scan_inv
 from jpg.core.huffman_table import HuffmanTable, LookupTable
 from jpg.core.quantized_blocks import QuantizedBlocks
@@ -118,11 +118,11 @@ def _read_jpeg_mcu_data(
 
 def from_entropy_coded_segment(
     ecs_segment: bytes,
-    frame_information: FrameInformation,
+    start_of_frame: StartOfFrame,
     start_of_scan: StartOfScan,
     component_huffman_tables: dict[tuple[int, int], HuffmanTable],
 ) -> list[QuantizedBlocks]:
-    mcu_size_hw_list = frame_information.get_mcu_size_hw_list()
+    mcu_size_hw_list = start_of_frame.get_mcu_size_hw_list()
     component_lookup_tables = [
         {
             "dc_lookup_table": component_huffman_tables[
@@ -134,7 +134,7 @@ def from_entropy_coded_segment(
         }
         for ht_id in start_of_scan.huffman_table_ids
     ]
-    mcu_num_hw = frame_information.get_mcu_num_hw()
+    mcu_num_hw = start_of_frame.get_mcu_num_hw()
     component_mcu_list = _read_jpeg_mcu_data(
         ecs_segment, mcu_num_hw, mcu_size_hw_list, component_lookup_tables
     )

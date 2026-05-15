@@ -1,10 +1,10 @@
 import numpy as np
 
 from jpg.core.entropy_coded_segment import from_entropy_coded_segment
-from jpg.core.frame_information import FrameInformation
 from jpg.core.helper import END_OF_IMAGE, START_OF_IMAGE, to_rgb
 from jpg.core.huffman_table import HuffmanTable
 from jpg.core.quantization_table import QuantizationTable
+from jpg.core.start_of_frame import StartOfFrame
 from jpg.core.start_of_scan import StartOfScan
 
 
@@ -24,7 +24,7 @@ def jpg_decode(jpg_bytes: bytes) -> np.ndarray:
     current_idx = jpg_bytes.find(START_OF_IMAGE.to_bytes(2, "big")) + 2
 
     quantization_tables = {}
-    frame_information = None
+    start_of_frame = None
     huffman_tables = {}
     start_of_scan = None
     while True:
@@ -34,9 +34,9 @@ def jpg_decode(jpg_bytes: bytes) -> np.ndarray:
             quantization_tables[quantization_table.table_id] = quantization_table
             current_idx += len(segment)
 
-        elif FrameInformation.MARKER.to_bytes(2, "big") == jpg_bytes[current_idx : current_idx + 2]:
+        elif StartOfFrame.MARKER.to_bytes(2, "big") == jpg_bytes[current_idx : current_idx + 2]:
             segment = _get_segment(jpg_bytes, current_idx)
-            frame_information = FrameInformation.from_bytes(segment)
+            start_of_frame = StartOfFrame.from_bytes(segment)
             current_idx += len(segment)
 
         elif HuffmanTable.MARKER.to_bytes(2, "big") == jpg_bytes[current_idx : current_idx + 2]:
@@ -52,21 +52,22 @@ def jpg_decode(jpg_bytes: bytes) -> np.ndarray:
             break
 
         else:
+            print(jpg_bytes[current_idx : current_idx + 2].hex())
             raise ValueError("Invalid JPEG file. Invalid marker.")
 
-    if frame_information is None:
-        msg = "Invalid JPEG file. Frame information not found."
+    if start_of_frame is None:
+        msg = "Invalid JPEG file. Start of frame not found."
         raise ValueError(msg)
 
     # decoding
     end_of_image_idx = jpg_bytes.find(END_OF_IMAGE.to_bytes(2, "big"))
     components = from_entropy_coded_segment(
         jpg_bytes[current_idx:end_of_image_idx],
-        frame_information,
+        start_of_frame,
         start_of_scan,
         huffman_tables,
     )
-    img_shape = (frame_information.image_height, frame_information.image_width)
+    img_shape = (start_of_frame.image_height, start_of_frame.image_width)
     img_comp_list = [
         component.to_image_component(
             img_shape,
@@ -75,8 +76,8 @@ def jpg_decode(jpg_bytes: bytes) -> np.ndarray:
         )
         for component, sample_step_hw, si in zip(
             components,
-            frame_information.get_sample_step_hw_list(),
-            frame_information.sampling_info_list,
+            start_of_frame.get_sample_step_hw_list(),
+            start_of_frame.sampling_info_list,
         )
     ]
 

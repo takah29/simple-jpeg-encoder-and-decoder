@@ -38,7 +38,7 @@ class SamplingInfo:
 
 
 @dataclass
-class FrameInformation:
+class StartOfFrame:
     MARKER = 0xFFC0
 
     sample_precision: int
@@ -70,7 +70,7 @@ class FrameInformation:
         return cls(sample_precision, image_height, image_width, num_components, sampling_info_list)
 
     def to_bytes(self) -> bytes:
-        marker_bytes = FrameInformation.MARKER.to_bytes(2, "big")
+        marker_bytes = StartOfFrame.MARKER.to_bytes(2, "big")
         segment_length = (8 + self.num_components * 3).to_bytes(2, "big")
 
         info = (
@@ -136,13 +136,13 @@ class FrameInformation:
 
 if __name__ == "__main__":
     img_shape = (256, 512, 3)
-    frame_info = FrameInformation.create(img_shape, "4:2:0")
+    frame_info = StartOfFrame.create(img_shape, "4:2:0")
     print(frame_info)
 
     frame_info_bytes = frame_info.to_bytes()
     print(frame_info_bytes.hex(" "))
 
-    parsed_frame_info = FrameInformation.from_bytes(frame_info_bytes)
+    parsed_frame_info = StartOfFrame.from_bytes(frame_info_bytes)
     print(parsed_frame_info)
 
     assert frame_info == parsed_frame_info

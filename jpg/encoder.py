@@ -1,9 +1,9 @@
 from pathlib import Path
 
 import numpy as np
+from jpg.core.start_of_frame import StartOfFrame
 
 from jpg.core.entropy_coded_segment import to_entropy_coded_segment
-from jpg.core.frame_information import FrameInformation
 from jpg.core.helper import END_OF_IMAGE, START_OF_IMAGE, to_ycbcr
 from jpg.core.huffman_table import HuffmanTable
 from jpg.core.quantization_table import QuantizationTable
@@ -16,7 +16,7 @@ def jpg_encode(
     subsampling_type: str,
     quality: int,
 ) -> bytes:
-    frame_information = FrameInformation.create(img.shape, subsampling_type)
+    start_of_frame = StartOfFrame.create(img.shape, subsampling_type)
     start_of_scan = StartOfScan.create(img.shape)
 
     q_table_y = QuantizationTable.create(0, 0, True, quality)
@@ -28,8 +28,8 @@ def jpg_encode(
     uvac_ht = HuffmanTable.from_file(Path("./huffman_code/uvac_hc.csv"), 1, 1)
 
     img = img.astype(np.float64)
-    mcu_size_hw_list = frame_information.get_mcu_size_hw_list()
-    sample_step_hw_list = frame_information.get_sample_step_hw_list()
+    mcu_size_hw_list = start_of_frame.get_mcu_size_hw_list()
+    sample_step_hw_list = start_of_frame.get_sample_step_hw_list()
     if img.ndim == 3:
         # RGB
         img_ycbcr = to_ycbcr(img) + np.array([-128, 0, 0])
@@ -62,7 +62,7 @@ def jpg_encode(
             START_OF_IMAGE.to_bytes(2, "big"),
             q_table_y.to_bytes(),
             q_table_c.to_bytes(),
-            frame_information.to_bytes(),
+            start_of_frame.to_bytes(),
             ydc_ht.to_bytes(),
             yac_ht.to_bytes(),
             uvdc_ht.to_bytes(),
@@ -87,7 +87,7 @@ def jpg_encode(
         headers = [
             START_OF_IMAGE.to_bytes(2, "big"),
             q_table_y.to_bytes(),
-            frame_information.to_bytes(),
+            start_of_frame.to_bytes(),
             ydc_ht.to_bytes(),
             yac_ht.to_bytes(),
             start_of_scan.to_bytes(),
