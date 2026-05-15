@@ -168,9 +168,3 @@ class QuantizedBlocks:
         img = self._chroma_upsampling(img, sample_step_hw)
 
         return img[: img_shape[0], : img_shape[1]]
-
-
-if __name__ == "__main__":
-    import doctest
-
-    doctest.testmod()

@@ -160,6 +160,5 @@ if __name__ == "__main__":
         print(table)
         table_bytes = table.to_bytes()
         table_from_bytes = HuffmanTable.from_bytes(table_bytes)
-        print(table_from_bytes)
 
-        assert table == table_from_bytes
+        assert table == table_from_bytes[0]

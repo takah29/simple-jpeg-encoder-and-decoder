@@ -130,4 +130,4 @@ if __name__ == "__main__":
     q_table = QuantizationTable.create(0, 0, True, 90)
     print(q_table)
 
-    assert q_table == QuantizationTable.from_bytes(q_table.to_bytes())
+    assert q_table == QuantizationTable.from_bytes(q_table.to_bytes())[0]
