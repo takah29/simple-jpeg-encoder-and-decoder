@@ -2,7 +2,6 @@ import numpy as np
 
 START_OF_IMAGE = 0xFFD8
 END_OF_IMAGE = 0xFFD9
-APPLICATION_0 = 0xFFE0
 
 ZIGZAG_ORDER = np.array(
     [

@@ -1,7 +1,7 @@
 import numpy as np
 
 from jpg.core.entropy_coded_segment import from_entropy_coded_segment
-from jpg.core.helper import APPLICATION_0, END_OF_IMAGE, START_OF_IMAGE, to_rgb
+from jpg.core.helper import END_OF_IMAGE, START_OF_IMAGE, to_rgb
 from jpg.core.huffman_table import HuffmanTable
 from jpg.core.quantization_table import QuantizationTable
 from jpg.core.start_of_frame import StartOfFrame
@@ -28,39 +28,31 @@ def jpg_decode(jpg_bytes: bytes) -> np.ndarray:
     huffman_tables = {}
     start_of_scan = None
     while True:
-        if APPLICATION_0.to_bytes(2, "big") == jpg_bytes[current_idx : current_idx + 2]:
-            # skip Application 0 segment
-            segment = _get_segment(jpg_bytes, current_idx)
-            current_idx += len(segment)
+        current_marker = int.from_bytes(jpg_bytes[current_idx : current_idx + 2])
 
-        elif (
-            QuantizationTable.MARKER.to_bytes(2, "big") == jpg_bytes[current_idx : current_idx + 2]
-        ):
-            segment = _get_segment(jpg_bytes, current_idx)
-            quantization_table = QuantizationTable.from_bytes(segment)
-            quantization_tables[quantization_table.table_id] = quantization_table
-            current_idx += len(segment)
-
-        elif StartOfFrame.MARKER.to_bytes(2, "big") == jpg_bytes[current_idx : current_idx + 2]:
-            segment = _get_segment(jpg_bytes, current_idx)
-            start_of_frame = StartOfFrame.from_bytes(segment)
-            current_idx += len(segment)
-
-        elif HuffmanTable.MARKER.to_bytes(2, "big") == jpg_bytes[current_idx : current_idx + 2]:
-            segment = _get_segment(jpg_bytes, current_idx)
-            huffman_table = HuffmanTable.from_bytes(segment)
-            huffman_tables[(huffman_table.table_class, huffman_table.table_id)] = huffman_table
-            current_idx += len(segment)
-
-        elif StartOfScan.MARKER.to_bytes(2, "big") == jpg_bytes[current_idx : current_idx + 2]:
-            segment = _get_segment(jpg_bytes, current_idx)
-            start_of_scan = StartOfScan.from_bytes(segment)
-            current_idx += len(segment)
-            break
-
-        else:
-            print(jpg_bytes[current_idx : current_idx + 2].hex())
-            raise ValueError("Invalid JPEG file. Invalid marker.")
+        match current_marker:
+            case QuantizationTable.MARKER:
+                segment = _get_segment(jpg_bytes, current_idx)
+                quantization_table = QuantizationTable.from_bytes(segment)
+                quantization_tables[quantization_table.table_id] = quantization_table
+                current_idx += len(segment)
+            case StartOfFrame.MARKER:
+                segment = _get_segment(jpg_bytes, current_idx)
+                start_of_frame = StartOfFrame.from_bytes(segment)
+                current_idx += len(segment)
+            case HuffmanTable.MARKER:
+                segment = _get_segment(jpg_bytes, current_idx)
+                huffman_table = HuffmanTable.from_bytes(segment)
+                huffman_tables[(huffman_table.table_class, huffman_table.table_id)] = huffman_table
+                current_idx += len(segment)
+            case StartOfScan.MARKER:
+                segment = _get_segment(jpg_bytes, current_idx)
+                start_of_scan = StartOfScan.from_bytes(segment)
+                current_idx += len(segment)
+                break
+            case _:
+                segment = _get_segment(jpg_bytes, current_idx)
+                current_idx += len(segment)
 
     if start_of_frame is None:
         msg = "Invalid JPEG file. Start of frame not found."
