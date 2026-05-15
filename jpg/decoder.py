@@ -23,9 +23,9 @@ def jpg_decode(jpg_bytes: bytes) -> np.ndarray:
 
     current_idx = jpg_bytes.find(START_OF_IMAGE.to_bytes(2, "big")) + 2
 
-    quantization_tables = {}
+    quantization_table_map = {}
     start_of_frame = None
-    huffman_tables = {}
+    huffman_table_map = {}
     start_of_scan = None
     while True:
         current_marker = int.from_bytes(jpg_bytes[current_idx : current_idx + 2])
@@ -33,8 +33,9 @@ def jpg_decode(jpg_bytes: bytes) -> np.ndarray:
         match current_marker:
             case QuantizationTable.MARKER:
                 segment = _get_segment(jpg_bytes, current_idx)
-                quantization_table = QuantizationTable.from_bytes(segment)
-                quantization_tables[quantization_table.table_id] = quantization_table
+                q_tables = QuantizationTable.from_bytes(segment)
+                for qt in q_tables:
+                    quantization_table_map[qt.table_id] = qt
                 current_idx += len(segment)
 
             case marker if marker in (StartOfFrame.MARKER, StartOfFrame.MARKER + 1):  # SOF0 or SOF1
@@ -52,8 +53,9 @@ def jpg_decode(jpg_bytes: bytes) -> np.ndarray:
 
             case HuffmanTable.MARKER:
                 segment = _get_segment(jpg_bytes, current_idx)
-                huffman_table = HuffmanTable.from_bytes(segment)
-                huffman_tables[(huffman_table.table_class, huffman_table.table_id)] = huffman_table
+                huffman_tables = HuffmanTable.from_bytes(segment)
+                for ht in huffman_tables:
+                    huffman_table_map[(ht.table_class, ht.table_id)] = ht
                 current_idx += len(segment)
 
             case StartOfScan.MARKER:
@@ -76,14 +78,14 @@ def jpg_decode(jpg_bytes: bytes) -> np.ndarray:
         jpg_bytes[current_idx:end_of_image_idx],
         start_of_frame,
         start_of_scan,
-        huffman_tables,
+        huffman_table_map,
     )
     img_shape = (start_of_frame.image_height, start_of_frame.image_width)
     img_comp_list = [
         component.to_image_component(
             img_shape,
             sample_step_hw,
-            quantization_tables[si.quantization_table_id],
+            quantization_table_map[si.quantization_table_id],
         )
         for component, sample_step_hw, si in zip(
             components,

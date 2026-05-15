@@ -1,11 +1,11 @@
 from collections.abc import Iterator
 
 import numpy as np
-from jpg.core.start_of_frame import StartOfFrame
 
 from jpg.core.helper import JpegBitWriter, decode_encval, zigzag_scan_inv
 from jpg.core.huffman_table import HuffmanTable, LookupTable
 from jpg.core.quantized_blocks import QuantizedBlocks
+from jpg.core.start_of_frame import StartOfFrame
 from jpg.core.start_of_scan import StartOfScan
 
 

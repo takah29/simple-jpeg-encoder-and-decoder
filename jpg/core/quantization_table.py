@@ -76,7 +76,25 @@ class QuantizationTable:
         return marker_bytes + segment_length + info + table_bytes
 
     @classmethod
-    def from_bytes(cls, data: bytes) -> Self:
+    def _read_table_data(cls, data: bytes, table_start_pos: int) -> tuple[Self, int]:
+        info = data[table_start_pos]
+        precision = (info >> 4) & 0x0F
+        table_id = info & 0x0F
+
+        q_table_start = table_start_pos + 1
+        if precision == 0:
+            arr1d = np.frombuffer(data[q_table_start : q_table_start + 64], dtype=np.uint8)
+            table_segment_length = 1 + 64
+        else:
+            arr1d = np.frombuffer(data[q_table_start : q_table_start + 2 * 64], dtype=">u2")
+            table_segment_length = 1 + 2 * 64
+
+        values = zigzag_scan_inv(arr1d).reshape(8, 8)
+
+        return cls(precision=precision, table_id=table_id, values=values), table_segment_length
+
+    @classmethod
+    def from_bytes(cls, data: bytes) -> list[Self]:
         if len(data) < 4:
             raise ValueError("data is too short")
 
@@ -88,18 +106,14 @@ class QuantizationTable:
         if len(data) != segment_length + 2:
             raise ValueError("invalid segment length")
 
-        info = data[4]
-        precision = (info >> 4) & 0x0F
-        table_id = info & 0x0F
+        current_pos = 4
+        q_tables = []
+        while current_pos < segment_length + 2:
+            q_table, table_segment_length = cls._read_table_data(data, current_pos)
+            q_tables.append(q_table)
+            current_pos += table_segment_length
 
-        if precision == 0:
-            arr1d = np.frombuffer(data[5:], dtype=np.uint8)
-        else:
-            arr1d = np.frombuffer(data[5:], dtype=">u2")
-
-        values = zigzag_scan_inv(arr1d).reshape(8, 8)
-
-        return cls(precision=precision, table_id=table_id, values=values)
+        return q_tables
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, QuantizationTable):

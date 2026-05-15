@@ -70,24 +70,16 @@ class HuffmanTable:
         return marker_bytes + segment_length + info + code_length_count_list_bytes + symbol_bytes
 
     @classmethod
-    def from_bytes(cls, data: bytes) -> Self:
-        if len(data) < 4:
-            raise ValueError("data is too short")
-
-        marker = int.from_bytes(data[0:2], "big")
-        if marker != cls.MARKER:
-            raise ValueError("invalid marker")
-
-        segment_length = int.from_bytes(data[2:4], "big")
-        if len(data) != segment_length + 2:
-            raise ValueError("invalid segment length")
-
-        info = data[4]
+    def _read_table_data(cls, data: bytes, table_start_pos: int) -> tuple[Self, int]:
+        info = data[table_start_pos]
         table_class = (info >> 4) & 0x0F
         table_id = info & 0x0F
 
-        code_length_count_list = list(data[5:21])
-        symbol_list = list(data[21 : 21 + sum(code_length_count_list)])
+        code_length_count_list = list(data[table_start_pos + 1 : table_start_pos + 17])
+        huffman_code_data_length = sum(code_length_count_list)
+        table_segment_length = 17 + huffman_code_data_length
+        symbol_start = table_start_pos + 17
+        symbol_list = list(data[symbol_start : symbol_start + huffman_code_data_length])
 
         huffman_table = {}
         start_idx = 0
@@ -100,7 +92,29 @@ class HuffmanTable:
             start_idx += count
             code_word <<= 1
 
-        return cls(table_class, table_id, huffman_table)
+        return cls(table_class, table_id, huffman_table), table_segment_length
+
+    @classmethod
+    def from_bytes(cls, data: bytes) -> list[Self]:
+        if len(data) < 4:
+            raise ValueError("data is too short")
+
+        marker = int.from_bytes(data[0:2], "big")
+        if marker != cls.MARKER:
+            raise ValueError("invalid marker")
+
+        segment_length = int.from_bytes(data[2:4], "big")
+        if len(data) != segment_length + 2:
+            raise ValueError("invalid segment length")
+
+        current_pos = 4
+        huffman_tables = []
+        while current_pos < segment_length + 2:
+            huffman_table, table_segment_length = cls._read_table_data(data, current_pos)
+            huffman_tables.append(huffman_table)
+            current_pos += table_segment_length
+
+        return huffman_tables
 
     def get_lookup_table(self) -> LookupTable:
         sorted_items = sorted(self.table.items(), key=lambda x: (x[1][1], x[1][0]))
