@@ -36,20 +36,32 @@ def jpg_decode(jpg_bytes: bytes) -> np.ndarray:
                 quantization_table = QuantizationTable.from_bytes(segment)
                 quantization_tables[quantization_table.table_id] = quantization_table
                 current_idx += len(segment)
-            case StartOfFrame.MARKER:
+
+            case marker if marker in (StartOfFrame.MARKER, StartOfFrame.MARKER + 1):  # SOF0 or SOF1
                 segment = _get_segment(jpg_bytes, current_idx)
                 start_of_frame = StartOfFrame.from_bytes(segment)
                 current_idx += len(segment)
+
+            case marker if 0xFFC2 <= marker <= 0xFFCF and marker not in (
+                HuffmanTable.MARKER,
+                0xFFCC,
+            ):
+                raise ValueError(
+                    f"Unsupported SOF marker: 0x{marker:02X} (Progressive or other modes not supported)"
+                )
+
             case HuffmanTable.MARKER:
                 segment = _get_segment(jpg_bytes, current_idx)
                 huffman_table = HuffmanTable.from_bytes(segment)
                 huffman_tables[(huffman_table.table_class, huffman_table.table_id)] = huffman_table
                 current_idx += len(segment)
+
             case StartOfScan.MARKER:
                 segment = _get_segment(jpg_bytes, current_idx)
                 start_of_scan = StartOfScan.from_bytes(segment)
                 current_idx += len(segment)
                 break
+
             case _:
                 segment = _get_segment(jpg_bytes, current_idx)
                 current_idx += len(segment)
