@@ -22,6 +22,13 @@ def main():
         default="4:2:0",
     )
     parser.add_argument(
+        "--quality",
+        "-q",
+        help="Quality factor",
+        type=int,
+        default=90,
+    )
+    parser.add_argument(
         "--output_file",
         "-o",
         help="Output JPEG file",
@@ -35,7 +42,7 @@ def main():
     img = np.array(img)
 
     subsampling_type = args.subsampling_ratio if img.ndim == 3 else "grayscale"
-    jpg_bytes = jpg_encode(img, subsampling_type, quality=50)
+    jpg_bytes = jpg_encode(img, subsampling_type, quality=args.quality)
 
     with args.output_file.open("wb") as f:
         f.write(jpg_bytes)
