@@ -80,9 +80,9 @@ class StartOfFrame:
             + self.num_components.to_bytes()
         )
 
-        component_bytes = b"".join(component.to_bytes() for component in self.sampling_info_list)
+        sampling_info_bytes = b"".join(si.to_bytes() for si in self.sampling_info_list)
 
-        return marker_bytes + segment_length + info + component_bytes
+        return marker_bytes + segment_length + info + sampling_info_bytes
 
     @classmethod
     def from_bytes(cls, data: bytes) -> Self:

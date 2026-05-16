@@ -7,20 +7,6 @@ import numpy as np
 
 
 @dataclass
-class LookupTable:
-    symbols: list[int]
-    min_codes: dict[int, int]
-    max_codes: dict[int, int]
-    code_len_start_indices: np.ndarray
-
-    def get_symbol(self, current_code: int, current_code_len: int) -> int:
-        idx = self.code_len_start_indices[current_code_len] + (
-            current_code - self.min_codes[current_code_len]
-        )
-        return self.symbols[idx]
-
-
-@dataclass
 class HuffmanTable:
     MARKER = 0xFFC4
 
@@ -116,8 +102,17 @@ class HuffmanTable:
 
         return huffman_tables
 
-    def get_lookup_table(self) -> LookupTable:
-        sorted_items = sorted(self.table.items(), key=lambda x: (x[1][1], x[1][0]))
+
+@dataclass
+class LookupTable:
+    symbols: list[int]
+    min_codes: dict[int, int]
+    max_codes: dict[int, int]
+    code_len_start_indices: np.ndarray
+
+    @classmethod
+    def from_huffman_table(cls, huffman_table: HuffmanTable) -> Self:
+        sorted_items = sorted(huffman_table.table.items(), key=lambda x: (x[1][1], x[1][0]))
 
         symbols = []
         min_codes = {}
@@ -134,12 +129,19 @@ class HuffmanTable:
             max_codes[code_len] = code_word
             code_len_start_indices[code_len] += 1
 
-        return LookupTable(
+        return cls(
             symbols=symbols,
             min_codes=min_codes,
             max_codes=max_codes,
             code_len_start_indices=np.cumsum([0] + code_len_start_indices),
         )
+
+    def contains(self, code, code_len):
+        return code_len in self.max_codes and code <= self.max_codes[code_len]
+
+    def get_symbol(self, code: int, code_len: int) -> int:
+        idx = self.code_len_start_indices[code_len] + (code - self.min_codes[code_len])
+        return self.symbols[idx]
 
 
 if __name__ == "__main__":

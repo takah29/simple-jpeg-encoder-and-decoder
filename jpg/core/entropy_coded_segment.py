@@ -52,7 +52,7 @@ def _read_jpeg_mcu_data(
             code = (code << 1) | bit
             code_len += 1
 
-            if code_len in target_table.max_codes and code <= target_table.max_codes[code_len]:
+            if target_table.contains(code, code_len):
                 return target_table.get_symbol(code, code_len)
 
     def read_val(cat: int) -> int:
@@ -126,12 +126,12 @@ def from_entropy_coded_segment(
     mcu_size_hw_list = start_of_frame.get_mcu_size_hw_list()
     component_lookup_tables = [
         {
-            "dc_lookup_table": component_huffman_tables[
-                (0, ht_id.dc_huffman_table_id)
-            ].get_lookup_table(),
-            "ac_lookup_table": component_huffman_tables[
-                (1, ht_id.ac_huffman_table_id)
-            ].get_lookup_table(),
+            "dc_lookup_table": LookupTable.from_huffman_table(
+                component_huffman_tables[(0, ht_id.dc_huffman_table_id)]
+            ),
+            "ac_lookup_table": LookupTable.from_huffman_table(
+                component_huffman_tables[(1, ht_id.ac_huffman_table_id)]
+            ),
         }
         for ht_id in start_of_scan.huffman_table_ids
     ]
