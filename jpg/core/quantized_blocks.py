@@ -81,14 +81,37 @@ class QuantizedBlocks:
 
     @staticmethod
     def _chroma_upsampling(
-        img: np.ndarray, sample_step_hw: tuple[int, int], method="nearest"
+        img: np.ndarray, sample_step_hw: tuple[int, int], method="bilinear"
     ) -> np.ndarray:
         if method == "nearest":
-            upsampled = np.kron(img, np.ones(sample_step_hw))
-        else:
-            raise ValueError("Unsupported upsampling method")
+            return np.kron(img, np.ones(sample_step_hw))
 
-        return upsampled
+        elif method == "bilinear":  # Center-aligned bilinear interpolation
+            h, w = img.shape[:2]
+            sh, sw = sample_step_hw
+
+            # アップサンプリング後の点のもとの配列の実数のインデックス
+            y = (np.arange(h * sh) + 0.5) / sh - 0.5
+            x = (np.arange(w * sw) + 0.5) / sw - 0.5
+
+            # 実数インデックスを挟むもとの配列の点のインデックス
+            y0 = np.floor(y).astype(int).clip(0, h - 1)
+            y1 = np.ceil(y).astype(int).clip(0, h - 1)
+            x0 = np.floor(x).astype(int).clip(0, w - 1)
+            x1 = np.ceil(x).astype(int).clip(0, w - 1)
+
+            # もとの点の位置からの増分
+            dy, dx = y - y0, x - x0
+
+            # 周囲4点の画素値の重み付き和を計算
+            return (
+                np.einsum("h,w,hw...->hw...", 1 - dy, 1 - dx, img[y0[:, None], x0])
+                + np.einsum("h,w,hw...->hw...", dy, 1 - dx, img[y1[:, None], x0])
+                + np.einsum("h,w,hw...->hw...", 1 - dy, dx, img[y0[:, None], x1])
+                + np.einsum("h,w,hw...->hw...", dy, dx, img[y1[:, None], x1])
+            )
+
+        raise ValueError("Unsupported upsampling method")
 
     @staticmethod
     def _block_split(img: np.ndarray, mcu_size_hw: tuple[int, int]) -> np.ndarray:
