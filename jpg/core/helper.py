@@ -43,8 +43,7 @@ def to_ycbcr(img: np.ndarray) -> np.ndarray:
     if img.ndim != 3:
         msg = f"Invalid image shape: {img.shape}. Expected RGB image."
         raise ValueError(msg)
-
-    return (YCBCR_MAT @ img[..., None]).squeeze()
+    return np.einsum("ij,klj->kli", YCBCR_MAT, img)
 
 
 def to_rgb(img: np.ndarray) -> np.ndarray:
@@ -52,7 +51,7 @@ def to_rgb(img: np.ndarray) -> np.ndarray:
         msg = f"Invalid image shape: {img.shape}. Expected YCbCr image."
         raise ValueError(msg)
 
-    return (np.linalg.inv(YCBCR_MAT) @ img[..., None]).squeeze()
+    return np.einsum("ij,klj->kli", np.linalg.inv(YCBCR_MAT), img)
 
 
 def dct_matrix(n: int = 8) -> np.ndarray:
