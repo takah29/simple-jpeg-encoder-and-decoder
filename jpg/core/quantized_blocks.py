@@ -50,9 +50,10 @@ class QuantizedBlocks:
             raise ValueError(msg)
 
         # padding
-        mcu_h, mcu_w = mcu_size_hw
-        pad_w = (mcu_w * 8) - 1 - ((image_component.shape[1] - 1) % (mcu_w * 8))
-        pad_h = (mcu_h * 8) - 1 - ((image_component.shape[0] - 1) % (mcu_h * 8))
+        mcu_pixels_h = mcu_size_hw[0] * 8 * sample_step_hw[0]
+        mcu_pixels_w = mcu_size_hw[1] * 8 * sample_step_hw[1]
+        pad_w = (mcu_pixels_w) - 1 - ((image_component.shape[1] - 1) % mcu_pixels_w)
+        pad_h = (mcu_pixels_h) - 1 - ((image_component.shape[0] - 1) % mcu_pixels_h)
         img = padding(image_component, pad_w, pad_h)
 
         img = cls._chroma_subsampling(img, sample_step_hw)
