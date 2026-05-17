@@ -18,16 +18,18 @@ def _get_segment(data: bytes, current_idx: int) -> bytes:
 
 
 def jpg_decode(jpg_bytes: bytes) -> np.ndarray:
-    if START_OF_IMAGE.to_bytes(2, "big") not in jpg_bytes:
-        raise ValueError("Invalid JPEG file. Start of image not found.")
+    if not jpg_bytes.startswith(START_OF_IMAGE.to_bytes(2, "big")):
+        raise ValueError("Invalid JPEG file. File must start with SOI (0xFFD8).")
 
-    current_idx = jpg_bytes.find(START_OF_IMAGE.to_bytes(2, "big")) + 2
-
+    current_idx = 2
     quantization_table_map = {}
     start_of_frame = None
     huffman_table_map = {}
     start_of_scan = None
     while True:
+        if jpg_bytes[current_idx] != 0xFF:
+            raise ValueError("Invalid JPEG file. Marker not found.")
+
         current_marker = int.from_bytes(jpg_bytes[current_idx : current_idx + 2])
 
         match current_marker:
@@ -65,10 +67,15 @@ def jpg_decode(jpg_bytes: bytes) -> np.ndarray:
                 break
 
             case 0xFFDD:
-                msg = "Unsupported DRI(0xFFDD) marker."
+                msg = "DRI(0xFFDD) marker is not supported."
                 raise ValueError(msg)
 
-            case _:
+            case 0xFF01:
+                msg = "TEM(0xFF01) marker is not supported."
+                raise ValueError(msg)
+
+            case _:  # skip other markers
+                print(f"Skip unsupported marker: 0x{current_marker:02X}")
                 segment = _get_segment(jpg_bytes, current_idx)
                 current_idx += len(segment)
 
