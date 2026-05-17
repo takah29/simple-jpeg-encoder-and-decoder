@@ -30,7 +30,7 @@ QC_BASE = [
 
 def _quantization_table(is_main_component: bool, quality: int) -> np.ndarray:
     if not (0 < quality <= 100):
-        msg = f"Invalid quality: {quality}. Expected 0 < quality < 50."
+        msg = f"Invalid quality: {quality}. Expected 0 < quality <= 100."
         raise ValueError(msg)
 
     q_base = np.array(QY_BASE) if is_main_component else np.array(QC_BASE)
