@@ -34,7 +34,7 @@ uv run main_encode.py <input_image_path> --quality 90 --subsampling_ratio 4:2:0 
 - `--subsampling_ratio` / `-s`: Chroma subsampling ratio (`4:4:4`, `4:2:2`, `4:2:0`).
 
 ### 2. Decoding an Image
-View the contents of a JPEG file using the custom decoder.
+View the contents of a Baseline JPEG file using the custom decoder.
 
 ```bash
 uv run main_decode.py compressed.jpg
